@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "sd.gym",
+  "name": "Gym",
+  "version": "1.0.0",
+  "author": "sd",
+  "license": "MIT",
+  "description": "Progressive Omarchy keybinding workouts. Sandbox overlay: chords are scored, never dispatched.",
+  "kinds": [
+    "overlay"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "Gym.qml"
+  }
+}
