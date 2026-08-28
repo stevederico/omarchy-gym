@@ -1,0 +1,9 @@
+{
+  "learn.gym": {
+    "icon": "󰊗",
+    "label": "Gym",
+    "aliases": ["gym", "workout", "ddr"],
+    "description": "Keybinding rhythm game",
+    "action": "omarchy-shell shell summon sd.gym"
+  }
+}

@@ -19,6 +19,8 @@ Item {
   property var chart: ({})
   property var run: ({})
   property bool chartComplete: false
+  property bool passedStage: false
+  property int playedStage: 1
   property string lastJudgement: ""
   property string flashJudgement: ""
   property int flashLane: -1
@@ -54,6 +56,28 @@ Item {
   readonly property int lastDeltaMs: Number(root.run && root.run.lastDeltaMs) || 0
   readonly property var counts: (root.run && root.run.counts) ? root.run.counts : ({})
   readonly property string gradeText: root.chartComplete ? GymLogic.gradeForRun(root.run) : ""
+  readonly property int currentNoteIndex: GymLogic.firstUnscoredIndex(root.run)
+  readonly property string currentChord: {
+    if (root.chartComplete) return ""
+    var notes = root.chart && root.chart.notes ? root.chart.notes : []
+    var n = notes[root.currentNoteIndex]
+    if (!n) return ""
+    return GymLogic.normalizeChord(n.chord)
+  }
+  function chordKey(chord) {
+    var n = GymLogic.normalizeChord(chord)
+    if (!n) return ""
+    var parts = n.split(" + ")
+    return parts.length ? parts[parts.length - 1] : n
+  }
+
+  readonly property string currentAction: {
+    if (root.chartComplete) return ""
+    var notes = root.chart && root.chart.notes ? root.chart.notes : []
+    var n = notes[root.currentNoteIndex]
+    if (!n) return ""
+    return String(n.action || "")
+  }
   readonly property color judgementColor: {
     var j = root.flashJudgement || root.lastJudgement
     if (j === "Marvelous") return Color.accent
@@ -105,20 +129,42 @@ Item {
     else root.open("{}")
   }
 
+  function retry() {
+    root.startChartAt(root.playedStage || 1)
+  }
+
+  function nextLevel() {
+    root.startChartAt((root.playedStage || 1) + 1)
+  }
+
   function startChart() {
     if (!root.progress || typeof root.progress !== "object" || Array.isArray(root.progress))
       root.progress = GymLogic.emptyProgress()
-    root.playable = GymLogic.defaultPlayable()
     var stage = Number(root.progress.stage) || 1
-    root.chart = GymLogic.generateChart(root.playable, stage)
+    root.startChartAt(stage)
+  }
+
+  function startChartAt(stage) {
+    if (!root.progress || typeof root.progress !== "object" || Array.isArray(root.progress))
+      root.progress = GymLogic.emptyProgress()
+    root.playable = GymLogic.defaultPlayable()
+    var s = Math.max(1, Number(stage) || 1)
+    var cap = GymLogic.maxStage(root.playable.length)
+    if (cap >= 1 && s > cap) s = cap
+    root.playedStage = s
+    root.passedStage = false
+    root.chart = GymLogic.generateChart(root.playable, s)
     root.run = GymLogic.emptyRun(root.chart)
     root.chartComplete = false
     root.lastJudgement = ""
+    root.flashJudgement = ""
+    root.flashLane = -1
     root.nowMs = 0
     root.startEpoch = Date.now()
     root.rebuildNoteModel()
     tickTimer.start()
-    console.log("sd.gym chart stage=" + stage + " notes=" + ((root.chart.notes && root.chart.notes.length) || 0) + " playable=" + root.playable.length)
+    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
+    console.log("sd.gym chart stage=" + s + " notes=" + ((root.chart.notes && root.chart.notes.length) || 0) + " playable=" + root.playable.length + " cue=" + ((root.chart.notes && root.chart.notes[0] && root.chart.notes[0].action) || "") + " labels=full")
   }
 
   function rebuildNoteModel() {
@@ -150,8 +196,10 @@ Item {
   function finishChart() {
     tickTimer.stop()
     root.chartComplete = true
+    root.passedStage = GymLogic.isPassingGrade(GymLogic.gradeForRun(root.run))
     root.progress = GymLogic.applyChartResult(root.progress, root.run)
     root.saveProgress()
+    console.log("sd.gym end stage=" + root.playedStage + " grade=" + root.gradeText + " passed=" + root.passedStage + " retry=1")
   }
 
   function keyName(event) {
@@ -223,12 +271,16 @@ Item {
       root.dismiss()
       return
     }
+    if (routed.action === "retry") {
+      root.retry()
+      return
+    }
     if (routed.action !== "score") return
     root.applyScore(GymLogic.scorePress(root.run, root.nowMs, routed.chord))
   }
 
   function scoreChord(arg) {
-    if (!root.opened || root.chartComplete) return "idle"
+    if (!root.opened) return "idle"
     var chord = String(arg || "")
     if (!chord) return "empty"
     var routed = GymLogic.routeKeyEvent({
@@ -240,7 +292,11 @@ Item {
       root.dismiss()
       return "dismiss"
     }
-    if (routed.action !== "score") return routed.action || "ignore"
+    if (routed.action === "retry") {
+      root.retry()
+      return "retry"
+    }
+    if (root.chartComplete || routed.action !== "score") return routed.action || "ignore"
     root.applyScore(GymLogic.scorePress(root.run, root.nowMs, routed.chord || chord))
     return root.lastJudgement
   }
@@ -356,8 +412,18 @@ Item {
         color: Qt.rgba(root.background.r, root.background.g, root.background.b, 0.22)
       }
 
+      Rectangle {
+        z: 39
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        height: scoreTracker.height + Style.spacing.md
+        color: root.background
+      }
+
       Column {
         id: scoreTracker
+        z: 40
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
@@ -438,6 +504,37 @@ Item {
           font.pixelSize: Style.font.caption
           horizontalAlignment: Text.AlignHCenter
         }
+
+        Column {
+          width: parent.width
+          visible: root.currentAction.length > 0 || root.currentChord.length > 0
+          spacing: Style.spacing.xxs
+          topPadding: Style.spacing.sm
+
+          Text {
+            width: parent.width
+            text: root.currentAction
+            color: root.foreground
+            wrapMode: Text.Wrap
+            elide: Text.ElideNone
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.heading
+            font.weight: Font.DemiBold
+            horizontalAlignment: Text.AlignHCenter
+          }
+
+          Text {
+            width: parent.width
+            text: root.currentChord
+            color: Color.accent
+            wrapMode: Text.Wrap
+            elide: Text.ElideNone
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.display
+            font.weight: Font.DemiBold
+            horizontalAlignment: Text.AlignHCenter
+          }
+        }
       }
 
       Repeater {
@@ -498,7 +595,9 @@ Item {
           required property real hitTimeMs
           required property int lane
           width: root.laneWidth
-          height: root.dotSize + Style.font.caption * 2
+          height: root.dotSize + Style.font.body * 6
+          clip: false
+          z: index === root.currentNoteIndex ? 12 : 1
           x: Math.round((playfield.width - root.highwayWidth) / 2) + lane * root.laneWidth + Style.spacing.xl
           y: GymLogic.noteY(
             { hitTimeMs: hitTimeMs },
@@ -537,21 +636,57 @@ Item {
             border.width: Math.max(1, Style.space(2))
             border.color: root.background
             opacity: 0.95
+
+            Text {
+              anchors.centerIn: parent
+              width: parent.width - Style.space(8)
+              text: root.chordKey(note.chord)
+              color: root.background
+              wrapMode: Text.Wrap
+              elide: Text.ElideNone
+              maximumLineCount: 2
+              horizontalAlignment: Text.AlignHCenter
+              font.family: root.fontFamily
+              font.pixelSize: root.chordKey(note.chord).length >= 6
+                ? Style.font.caption
+                : Style.font.body
+              font.weight: Font.DemiBold
+            }
           }
 
-          Text {
+          Column {
             anchors.top: dot.bottom
             anchors.topMargin: Style.spacing.xxs
             anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width - Style.spacing.xs
-            text: GymLogic.normalizeChord(note.chord)
-            color: root.foreground
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
-            font.weight: Font.DemiBold
-            wrapMode: Text.NoWrap
-            elide: Text.ElideRight
-            horizontalAlignment: Text.AlignHCenter
+            width: root.laneWidth * 2.4
+            spacing: 0
+
+            Text {
+              width: parent.width
+              text: note.action
+              color: root.foreground
+              wrapMode: Text.Wrap
+              elide: Text.ElideNone
+              maximumLineCount: 4
+              horizontalAlignment: Text.AlignHCenter
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.bodySmall
+              font.weight: Font.DemiBold
+            }
+
+            Text {
+              width: parent.width
+              text: GymLogic.normalizeChord(note.chord)
+              color: root.foreground
+              opacity: 0.85
+              wrapMode: Text.Wrap
+              elide: Text.ElideNone
+              maximumLineCount: 4
+              horizontalAlignment: Text.AlignHCenter
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.weight: Font.DemiBold
+            }
           }
         }
       }
@@ -565,7 +700,7 @@ Item {
         color: root.judgementColor
         font.family: root.fontFamily
         font.pixelSize: Style.font.displayLarge
-        font.weight: Font.Black
+        font.weight: Font.DemiBold
         style: Text.Outline
         styleColor: root.background
         z: 20
@@ -586,18 +721,27 @@ Item {
       }
 
       Rectangle {
+        id: endScreen
         visible: root.chartComplete
         anchors.fill: parent
-        color: Qt.rgba(root.background.r, root.background.g, root.background.b, 0.72)
+        z: 80
+        color: root.background
+
+        MouseArea {
+          anchors.fill: parent
+          z: 0
+        }
 
         Column {
+          id: endContent
+          width: endScreen.width - 48
           anchors.centerIn: parent
-          width: parent.width - Style.spacing.xl * 2
-          spacing: Style.spacing.md
+          spacing: 14
+          z: 2
 
           Text {
-            width: parent.width
-            text: "Stage " + root.stageNumber + "  ·  " + root.gradeText
+            width: endContent.width
+            text: "Stage " + root.playedStage + "  ·  " + root.gradeText
             color: root.foreground
             font.family: root.fontFamily
             font.pixelSize: Style.font.display
@@ -606,8 +750,8 @@ Item {
           }
 
           Text {
-            width: parent.width
-            text: "Score " + root.score + "   ·   Max combo " + ((root.run && root.run.maxCombo) || 0)
+            width: endContent.width
+            text: root.scoreText + "   ·   Max combo " + root.maxCombo
             color: root.foreground
             font.family: root.fontFamily
             font.pixelSize: Style.font.heading
@@ -615,21 +759,70 @@ Item {
           }
 
           Text {
-            width: parent.width
-            text: GymLogic.isPassingGrade(root.gradeText)
-              ? "Passed — next pool unlocked"
-              : "Try again — need C or better to unlock"
+            width: endContent.width
+            text: root.passedStage
+              ? "Passed — next level unlocked"
+              : "Need C or better to unlock the next level"
             color: root.foreground
             opacity: 0.8
+            wrapMode: Text.Wrap
             font.family: root.fontFamily
             font.pixelSize: Style.font.body
-            wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
           }
 
+          Rectangle {
+            width: endContent.width
+            height: 64
+            radius: 8
+            visible: root.passedStage
+            color: nextMouse.containsMouse ? Color.accent : root.foreground
+
+            Text {
+              anchors.centerIn: parent
+              text: "Next level"
+              color: root.background
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.heading
+              font.weight: Font.DemiBold
+            }
+
+            MouseArea {
+              id: nextMouse
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.nextLevel()
+            }
+          }
+
+          Rectangle {
+            width: endContent.width
+            height: 64
+            radius: 8
+            color: retryMouse.containsMouse ? Color.accent : root.foreground
+
+            Text {
+              anchors.centerIn: parent
+              text: "Retry"
+              color: root.background
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.heading
+              font.weight: Font.DemiBold
+            }
+
+            MouseArea {
+              id: retryMouse
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.retry()
+            }
+          }
+
           Text {
-            width: parent.width
-            text: "Esc to leave"
+            width: endContent.width
+            text: "Return retries   ·   Esc leaves"
             color: root.foreground
             opacity: 0.55
             font.family: root.fontFamily

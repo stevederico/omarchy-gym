@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "sd.gym",
   "name": "Gym",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "author": "sd",
   "license": "MIT",
   "description": "Falling-note Omarchy keybinding gym. Normal window: chords are scored, never dispatched.",
@@ -11,6 +11,6 @@
   ],
   "keepLoaded": true,
   "entryPoints": {
-    "overlay": "Gym.qml"
+    "overlay": "run/Gym.qml"
   }
 }

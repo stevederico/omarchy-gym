@@ -5,14 +5,22 @@ const assert = require("node:assert/strict")
 const fs = require("fs")
 const path = require("path")
 
-const repoLogic = path.join(__dirname, "..", "plugin", "sd.gym", "GymLogic.js")
+const repoLogic = path.join(__dirname, "..", "plugin", "sd.gym", "run", "GymLogic.js")
 const gym = require(repoLogic)
 const fixturePath = path.join(__dirname, "..", "plugin", "sd.gym", "keybindings-print.txt")
 const fixture = fs.readFileSync(fixturePath, "utf8")
 
 test("tests require the repo plugin module, not the installed copy", () => {
   assert.equal(require.resolve(repoLogic), path.resolve(repoLogic))
-  assert.match(repoLogic, /plugin\/sd\.gym\/GymLogic\.js$/)
+  assert.match(repoLogic, /plugin\/sd\.gym\/run\/GymLogic\.js$/)
+})
+
+test("chordPrimaryKey is the last token of the chord", () => {
+  assert.equal(gym.chordPrimaryKey("SUPER + SPACE"), "SPACE")
+  assert.equal(gym.chordPrimaryKey("SUPER + SHIFT + RETURN"), "RETURN")
+  assert.equal(gym.chordPrimaryKey("SUPER + SHIFT + CTRL + SPACE"), "SPACE")
+  assert.equal(gym.chordPrimaryKey("K"), "K")
+  assert.equal(gym.chordPrimaryKey("super+k"), "K")
 })
 
 test("catalog parse of keybindings-print fixture excludes mouse rows", () => {
@@ -273,6 +281,21 @@ test("bare Escape dismisses even when the chart is complete or mid-run", () => {
   assert.equal(complete.action, "dismiss")
   assert.equal(waiting.action, "dismiss")
   assert.equal(active.action, "dismiss")
+})
+
+test("bare Return retries after the chart is complete", () => {
+  const enter = { key: "RETURN", superHeld: false, shiftHeld: false, ctrlHeld: false, altHeld: false }
+  const done = gym.routeKeyEvent(
+    { opened: true, chartComplete: true, hasChart: true },
+    enter
+  )
+  const playing = gym.routeKeyEvent(
+    { opened: true, chartComplete: false, hasChart: true },
+    enter
+  )
+  assert.equal(done.action, "retry")
+  assert.equal(playing.action, "score")
+  assert.equal(playing.chord, "RETURN")
 })
 
 test("bare F12 dismisses as the grab failsafe", () => {

@@ -1,4 +1,4 @@
-// Shared gym logic. Gym.qml imports this; Node tests require the same file.
+// Shared gym logic. overlay/Gym.qml imports this; Node tests require the same file.
 // Chart generation, catalog parse, timing, combo/score/grade, and progress
 // live here so node --test can drive them without QML.
 
@@ -31,7 +31,7 @@ var MODIFIER_KEYS = {
   CONTROL: true
 }
 
-// Keys we can score from a Qt key event (see Gym.qml keyName).
+// Keys we can score from a Qt key event (see overlay/Gym.qml keyName).
 var SCORABLE_KEYS = {
   SPACE: true,
   RETURN: true,
@@ -1268,6 +1268,13 @@ function normalizeChord(raw) {
   return mods.concat([key]).join(" + ")
 }
 
+function chordPrimaryKey(raw) {
+  var n = normalizeChord(raw)
+  if (!n) return ""
+  var parts = n.split(" + ")
+  return parts.length ? parts[parts.length - 1] : n
+}
+
 function isModifierKey(name) {
   return !!MODIFIER_KEYS[canonicalToken(name)]
 }
@@ -1295,6 +1302,15 @@ function isBareEscape(parts) {
 function isBareF12(parts) {
   parts = parts || {}
   return canonicalToken(parts.key) === "F12"
+    && !parts.superHeld
+    && !parts.shiftHeld
+    && !parts.ctrlHeld
+    && !parts.altHeld
+}
+
+function isBareReturn(parts) {
+  parts = parts || {}
+  return canonicalToken(parts.key) === "RETURN"
     && !parts.superHeld
     && !parts.shiftHeld
     && !parts.ctrlHeld
@@ -1760,6 +1776,7 @@ function routeKeyEvent(session, parts) {
   if (isModifierKey(parts.key)) return { action: "ignore" }
   var complete = !!(session.chartComplete || session.workoutComplete)
   var hasChart = session.hasChart === true || session.hasExercise === true
+  if (complete && isBareReturn(parts)) return { action: "retry" }
   if (complete || !hasChart) return { action: "ignore" }
   var chord = chordFromParts(parts)
   if (!chord) return { action: "ignore" }
@@ -1787,9 +1804,11 @@ if (typeof module !== "undefined") {
     tokenizeChord: tokenizeChord,
     canonicalToken: canonicalToken,
     normalizeChord: normalizeChord,
+    chordPrimaryKey: chordPrimaryKey,
     isModifierKey: isModifierKey,
     chordFromParts: chordFromParts,
     isBareEscape: isBareEscape,
+    isBareReturn: isBareReturn,
     isBareF12: isBareF12,
     sandboxEnterDispatch: sandboxEnterDispatch,
     sandboxLeaveDispatch: sandboxLeaveDispatch,

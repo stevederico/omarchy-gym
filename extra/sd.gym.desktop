@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Gym
+GenericName=Keybinding trainer
+Comment=Omarchy keybinding rhythm game
+Exec=omarchy-shell shell summon sd.gym
+Icon=input-keyboard
+Terminal=false
+Categories=Game;Education;
+Keywords=omarchy;keybindings;ddr;gym;workout;
+StartupNotify=false

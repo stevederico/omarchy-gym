@@ -23,10 +23,23 @@ omarchy plugin validate ~/.config/omarchy/plugins/sd.gym
 omarchy plugin enable sd.gym
 ```
 
-Open it from **Learn → Gym**, or:
+Open it from the launcher: search **Gym**, or **Learn → Gym**. Also:
 
 ```sh
 omarchy-shell shell summon sd.gym
+```
+
+Menu row (user extension, hot-reloads):
+
+```sh
+cp extra/omarchy-menu-gym.jsonc ~/.config/omarchy/extensions/omarchy-menu.jsonc
+# or merge the learn.gym object into your existing extension file
+```
+
+Apps launcher desktop file:
+
+```sh
+cp extra/sd.gym.desktop ~/.local/share/applications/
 ```
 
 While Gym is focused, Hyprland switches to the `omarchy-gym` submap so Super+Space and friends are scored instead of launching the real menu/terminal. Super+W closes the window. Escape leaves. F12 is the failsafe if Gym dies while grabbed.
@@ -41,4 +54,4 @@ Do not bind Super+G — that is Grok on this desktop.
 node --test tests/test_gym.js
 ```
 
-The tests import `plugin/sd.gym/GymLogic.js`, the same module the overlay uses, and parse the bundled `plugin/sd.gym/keybindings-print.txt` fixture.
+The tests import `plugin/sd.gym/run/GymLogic.js`, the same module the overlay uses, and parse the bundled `plugin/sd.gym/keybindings-print.txt` fixture.
