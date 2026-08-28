@@ -1,10 +1,12 @@
 # Omarchy Gym
 
-Progressive keybinding workouts for [Omarchy](https://omarchy.org/) Quattro.
+Rhythm-game keybinding workouts for [Omarchy](https://omarchy.org/) Quattro.
 
-Gym is a sandbox overlay. It prompts an English desktop action, waits for the chord, and **scores** the attempt. It does not dispatch the real Hyprland / Omarchy action.
+Gym is a **normal tiled window** (like a terminal). Dots fall down **four DDR-style streams** (← ↓ ↑ →) toward receptors at the bottom. Press the matching chord as the dot hits the ring. Marvelous / Perfect / Great / Good — late or wrong is a Miss. Hits vanish at the line; misses continue past. It does **not** dispatch the real Hyprland / Omarchy action.
 
-Workouts are ordered lessons. A new learner starts on launch (menu, terminal, browser, files). Later lessons stay locked until every exercise in the current lesson is mastered (three hits in a row).
+The chart uses **Learn → Keybindings** (`omarchy menu keybindings --print`). A new player starts with the first 3 keyboard chords, then 5, 10, 20, 40… until the full playable catalog. Clearing a stage with a C or better unlocks the next pool. Silent chart for v1 (no music).
+
+Mouse binds and hardware (`XF86*`) keys are dropped — see `plugin/sd.gym/DROPS.md`.
 
 ## Install
 
@@ -27,7 +29,9 @@ Open it from **Learn → Gym**, or:
 omarchy-shell shell summon sd.gym
 ```
 
-While a workout is open, Hyprland switches to the `omarchy-gym` submap (`hyprctl dispatch 'hl.dsp.submap("omarchy-gym")'`) so Super+Space and friends are scored in the overlay instead of launching the real menu/terminal. Escape leaves. F12 is the failsafe if the overlay dies while grabbed.
+While Gym is focused, Hyprland switches to the `omarchy-gym` submap so Super+Space and friends are scored instead of launching the real menu/terminal. Super+W closes the window. Escape leaves. F12 is the failsafe if Gym dies while grabbed.
+
+Define that submap in `~/.config/hypr/bindings.lua` (see the `omarchy-gym` block). Without it, Super combos never reach the window.
 
 Do not bind Super+G — that is Grok on this desktop.
 
@@ -37,4 +41,4 @@ Do not bind Super+G — that is Grok on this desktop.
 node --test tests/test_gym.js
 ```
 
-The tests import `plugin/sd.gym/GymLogic.js`, the same module the overlay uses.
+The tests import `plugin/sd.gym/GymLogic.js`, the same module the overlay uses, and parse the bundled `plugin/sd.gym/keybindings-print.txt` fixture.

@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "sd",
   "license": "MIT",
-  "description": "Progressive Omarchy keybinding workouts. Sandbox overlay: chords are scored, never dispatched.",
+  "description": "Falling-note Omarchy keybinding gym. Normal window: chords are scored, never dispatched.",
   "kinds": [
     "overlay"
   ],
