@@ -2,56 +2,106 @@
 
 Rhythm-game keybinding workouts for [Omarchy](https://omarchy.org/) Quattro.
 
-Gym is a **normal tiled window** (like a terminal). Dots fall down **four DDR-style streams** (← ↓ ↑ →) toward receptors at the bottom. Press the matching chord as the dot hits the ring. Marvelous / Perfect / Great / Good — late or wrong is a Miss. Hits vanish at the line; misses continue past. It does **not** dispatch the real Hyprland / Omarchy action.
+Gym is a **normal tiled window**. Dots fall down four DDR-style streams
+(← ↓ ↑ →) toward receptors at the bottom. Press the matching chord as a dot
+hits the ring. Marvelous / Perfect / Great / Good are scored; late or wrong
+presses are misses. Gym never dispatches the real Hyprland or Omarchy action.
 
-The chart uses **Learn → Keybindings** (`omarchy menu keybindings --print`). A new player starts with the first 3 keyboard chords, then 5, 10, 20, 40… until the full playable catalog. Clearing a stage with a C or better unlocks the next pool. Silent chart for v1 (no music).
+The chart follows the **Learn → Keybindings** order. It starts with the first
+3 playable keyboard chords, then expands to 5, 10, 20, 40, and so on. A stage
+grade of C or better unlocks the next pool. The chart is silent in v1.
+At startup, Gym reads the current `omarchy menu keybindings --print` output.
+`catalog.json` and `keybindings-print.txt` preserve the bundled raw snapshot;
+`GymLogic.js` applies the documented filters before chart generation and uses
+the snapshot only if the command is unavailable or produces no playable rows.
 
-Mouse binds and hardware (`XF86*`) keys are dropped — see `plugin/sd.gym/DROPS.md`.
+Mouse binds, hardware (`XF86*`) keys, and Gym's `Super+W` close control are
+excluded from scoring. See `plugin/sd.gym/DROPS.md`.
+
+## Requirements and safety
+
+- Omarchy Quattro with the Quickshell shell and Hyprland.
+- A user-configured `omarchy-gym` Hyprland submap; see
+  `extra/omarchy-gym-submap.conf`.
+- No sudo, installer, package manager, service, network access, or external
+  runtime dependency is required.
+- Gym writes progress only to
+  `~/.local/state/omarchy/gym-progress.json`.
+- Gym invokes `hyprctl` only to enter and leave its temporary submap.
+- The optional menu extension must be merged manually; Gym does not overwrite
+  user configuration.
 
 ## Install
 
 ```sh
-omarchy plugin add https://github.com/YOU/omarchy-gym.git --enable
+omarchy plugin add https://github.com/stevederico/omarchy-gym.git --enable
 ```
 
-Local checkout (real directory — the validator rejects a symlinked plugin folder):
+Open it from the launcher by searching **Gym**, or run:
 
 ```sh
-mkdir -p ~/.config/omarchy/plugins/sd.gym
-cp -a ~/Projects/omarchy-gym/plugin/sd.gym/. ~/.config/omarchy/plugins/sd.gym/
-omarchy plugin validate ~/.config/omarchy/plugins/sd.gym
-omarchy plugin enable sd.gym
+omarchy-shell shell summon io.github.stevederico.omarchy-gym
 ```
 
-Open it from the launcher: search **Gym**, or **Learn → Gym**. Also:
+Local checkout (copy the repository root, not a symlink):
 
 ```sh
-omarchy-shell shell summon sd.gym
+PLUGIN_ID="io.github.stevederico.omarchy-gym"
+PLUGIN_DIR="$HOME/.config/omarchy/plugins/$PLUGIN_ID"
+mkdir -p "$PLUGIN_DIR"
+cp -a ~/Projects/omarchy-gym/manifest.json \
+  ~/Projects/omarchy-gym/plugin \
+  ~/Projects/omarchy-gym/README.md \
+  ~/Projects/omarchy-gym/LICENSE \
+  "$PLUGIN_DIR/"
+omarchy plugin validate "$PLUGIN_DIR"
+omarchy plugin enable "$PLUGIN_ID"
 ```
 
-Menu row (user extension, hot-reloads):
+## Optional integrations
 
-```sh
-cp extra/omarchy-menu-gym.jsonc ~/.config/omarchy/extensions/omarchy-menu.jsonc
-# or merge the learn.gym object into your existing extension file
-```
+To add a **Learn → Gym** menu row, merge the `learn.gym` object from
+`extra/omarchy-menu-gym.jsonc` into your existing
+`~/.config/omarchy/extensions/omarchy-menu.jsonc`. Do not replace that file.
 
-Apps launcher desktop file:
+To add an application-launcher entry:
 
 ```sh
 cp extra/sd.gym.desktop ~/.local/share/applications/
 ```
 
-While Gym is focused, Hyprland switches to the `omarchy-gym` submap so Super+Space and friends are scored instead of launching the real menu/terminal. Super+W closes the window. Escape leaves. F12 is the failsafe if Gym dies while grabbed.
+To make Super chords reach Gym instead of Hyprland, merge the block in
+`extra/omarchy-gym-submap.conf` into your Hyprland bindings source. Do not
+replace `bindings.lua` or `bindings.conf`. Leave all other chords unbound in
+the submap so Qt can receive them. `Super+W` closes Gym; bare Escape closes
+normally; F12 is the emergency close path.
 
-Define that submap in `~/.config/hypr/bindings.lua` (see the `omarchy-gym` block). Without it, Super combos never reach the window.
+## Remove
 
-Do not bind Super+G — that is Grok on this desktop.
+```sh
+PLUGIN_ID="io.github.stevederico.omarchy-gym"
+omarchy-shell shell hide "$PLUGIN_ID"
+omarchy plugin disable "$PLUGIN_ID"
+omarchy plugin remove "$PLUGIN_ID"
+```
 
-## Tests
+If installed, manually remove the optional menu object, desktop file, and
+`omarchy-gym` submap block from your user configuration.
+
+## Development checks
 
 ```sh
 node --test tests/test_gym.js
 ```
 
-The tests import `plugin/sd.gym/run/GymLogic.js`, the same module the overlay uses, and parse the bundled `plugin/sd.gym/keybindings-print.txt` fixture.
+On an Omarchy installation, also validate the root plugin:
+
+```sh
+PLUGIN_ID="io.github.stevederico.omarchy-gym"
+PLUGIN_DIR="$HOME/.config/omarchy/plugins/$PLUGIN_ID"
+omarchy plugin validate "$PLUGIN_DIR"
+qmllint -I "$OMARCHY_PATH/shell" "$PLUGIN_DIR/plugin/sd.gym/run/Gym.qml"
+```
+
+The tests exercise the same `plugin/sd.gym/run/GymLogic.js` module used by the
+overlay and parse the bundled `plugin/sd.gym/keybindings-print.txt` fixture.

@@ -4,6 +4,6 @@
     "label": "Gym",
     "aliases": ["gym", "workout", "ddr"],
     "description": "Keybinding rhythm game",
-    "action": "omarchy-shell shell summon sd.gym"
+    "action": "omarchy-shell shell summon io.github.stevederico.omarchy-gym"
   }
 }

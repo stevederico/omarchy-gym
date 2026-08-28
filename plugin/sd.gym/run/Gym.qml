@@ -21,6 +21,9 @@ Item {
   property bool chartComplete: false
   property bool passedStage: false
   property int playedStage: 1
+  property bool catalogLoaded: false
+  property bool pendingChartStart: false
+  property string catalogSource: "baked fallback"
   property string lastJudgement: ""
   property string flashJudgement: ""
   property int flashLane: -1
@@ -51,6 +54,8 @@ Item {
   readonly property int maxCombo: Number(root.run && root.run.maxCombo) || 0
   readonly property int score: Number(root.run && root.run.score) || 0
   readonly property int highScore: Number(root.progress && root.progress.highScore) || 0
+  readonly property int maximumStage: GymLogic.maxStage(root.playable.length)
+  readonly property bool hasNextStage: root.playedStage < root.maximumStage
   readonly property string scoreText: GymLogic.formatScore(root.score)
   readonly property string lastTiming: String((root.run && root.run.lastTiming) || "")
   readonly property int lastDeltaMs: Number(root.run && root.run.lastDeltaMs) || 0
@@ -104,6 +109,7 @@ Item {
     root.chartComplete = false
     window.visible = true
     root.enterSandbox()
+    root.refreshCatalog()
     root.startChart()
     Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
@@ -119,7 +125,7 @@ Item {
 
   function dismiss() {
     if (root.shell && typeof root.shell.hide === "function")
-      root.shell.hide((root.manifest && root.manifest.id) || "sd.gym")
+      root.shell.hide((root.manifest && root.manifest.id) || "io.github.stevederico.omarchy-gym")
     else
       root.close()
   }
@@ -134,20 +140,31 @@ Item {
   }
 
   function nextLevel() {
+    if (!root.hasNextStage) return
     root.startChartAt((root.playedStage || 1) + 1)
   }
 
   function startChart() {
+    if (!root.catalogLoaded) {
+      root.pendingChartStart = true
+      return
+    }
     if (!root.progress || typeof root.progress !== "object" || Array.isArray(root.progress))
       root.progress = GymLogic.emptyProgress()
     var stage = Number(root.progress.stage) || 1
+    root.pendingChartStart = false
     root.startChartAt(stage)
   }
 
   function startChartAt(stage) {
+    if (!root.catalogLoaded) {
+      root.pendingChartStart = true
+      return
+    }
     if (!root.progress || typeof root.progress !== "object" || Array.isArray(root.progress))
       root.progress = GymLogic.emptyProgress()
-    root.playable = GymLogic.defaultPlayable()
+    if (!root.playable || root.playable.length === 0)
+      root.playable = GymLogic.defaultPlayable()
     var s = Math.max(1, Number(stage) || 1)
     var cap = GymLogic.maxStage(root.playable.length)
     if (cap >= 1 && s > cap) s = cap
@@ -164,7 +181,7 @@ Item {
     root.rebuildNoteModel()
     tickTimer.start()
     Qt.callLater(function() { keyCatcher.forceActiveFocus() })
-    console.log("sd.gym chart stage=" + s + " notes=" + ((root.chart.notes && root.chart.notes.length) || 0) + " playable=" + root.playable.length + " cue=" + ((root.chart.notes && root.chart.notes[0] && root.chart.notes[0].action) || "") + " labels=full")
+    console.log("io.github.stevederico.omarchy-gym chart stage=" + s + " notes=" + ((root.chart.notes && root.chart.notes.length) || 0) + " playable=" + root.playable.length + " cue=" + ((root.chart.notes && root.chart.notes[0] && root.chart.notes[0].action) || "") + " labels=full")
   }
 
   function rebuildNoteModel() {
@@ -189,6 +206,26 @@ Item {
     if (root.opened && (!root.chart || !root.chart.notes)) root.startChart()
   }
 
+  function loadCatalog(raw) {
+    var parsed = GymLogic.parseKeybindingsPrint(raw)
+    if (parsed.playable.length > 0) {
+      root.playable = parsed.playable
+      root.catalogSource = "current Learn keybindings"
+    } else {
+      root.playable = GymLogic.defaultPlayable()
+      root.catalogSource = "baked fallback"
+    }
+    root.catalogLoaded = true
+    console.log("io.github.stevederico.omarchy-gym catalog=" + root.catalogSource + " playable=" + root.playable.length)
+    if (root.opened && root.pendingChartStart) root.startChart()
+  }
+
+  function refreshCatalog() {
+    root.catalogLoaded = false
+    root.pendingChartStart = true
+    keybindingsProcess.exec()
+  }
+
   function saveProgress() {
     progressFile.setText(GymLogic.serializeProgress(root.progress))
   }
@@ -199,7 +236,38 @@ Item {
     root.passedStage = GymLogic.isPassingGrade(GymLogic.gradeForRun(root.run))
     root.progress = GymLogic.applyChartResult(root.progress, root.run)
     root.saveProgress()
-    console.log("sd.gym end stage=" + root.playedStage + " grade=" + root.gradeText + " passed=" + root.passedStage + " retry=1")
+    console.log("io.github.stevederico.omarchy-gym end stage=" + root.playedStage + " grade=" + root.gradeText + " passed=" + root.passedStage + " retry=1")
+  }
+
+  function symbolKeyName(event) {
+    var symbols = {
+      "!": "1",
+      "@": "2",
+      "#": "3",
+      "$": "4",
+      "%": "5",
+      "^": "6",
+      "&": "7",
+      "*": "8",
+      "(": "9",
+      ")": "0",
+      "_": "MINUS",
+      "+": "EQUAL",
+      "{": "BRACKETLEFT",
+      "}": "BRACKETRIGHT",
+      "|": "BACKSLASH",
+      "\\": "BACKSLASH",
+      ":": "SEMICOLON",
+      ";": "SEMICOLON",
+      "\"": "APOSTROPHE",
+      "'": "APOSTROPHE",
+      "<": "COMMA",
+      ">": "PERIOD",
+      "?": "SLASH",
+      "~": "GRAVE",
+      "`": "GRAVE"
+    }
+    return symbols[String(event.text || "")] || ""
   }
 
   function keyName(event) {
@@ -245,6 +313,8 @@ Item {
     if (event.key === Qt.Key_Control) return "CTRL"
     if (event.key === Qt.Key_Alt) return "ALT"
     if (event.key === Qt.Key_Meta) return "SUPER"
+    var symbol = root.symbolKeyName(event)
+    if (symbol) return symbol
     if (event.text && event.text.length === 1) {
       var ch = event.text.toUpperCase()
       if (ch.charCodeAt(0) >= 32 && ch.charCodeAt(0) !== 127) return ch
@@ -331,7 +401,7 @@ Item {
       root.flashLane = -1
     root.flashSeq += 1
     flashTimer.restart()
-    console.log("sd.gym score " + j + " chord=" + (scored.run && scored.result) + " lane=" + root.flashLane)
+    console.log("io.github.stevederico.omarchy-gym score " + j + " chord=" + (scored.run && scored.result) + " lane=" + root.flashLane)
     if (root.run.chartComplete) root.finishChart()
   }
 
@@ -370,6 +440,16 @@ Item {
     onLoadFailed: root.loadProgress("{}")
   }
 
+  Process {
+    id: keybindingsProcess
+    command: ["omarchy", "menu", "keybindings", "--print"]
+    running: true
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: root.loadCatalog(this.text)
+    }
+  }
+
   FloatingWindow {
     id: window
     title: "Gym"
@@ -386,7 +466,7 @@ Item {
       } else {
         root.leaveSandbox()
         if (!root.closingFromHost && root.shell && typeof root.shell.hide === "function")
-          root.shell.hide((root.manifest && root.manifest.id) || "sd.gym")
+          root.shell.hide((root.manifest && root.manifest.id) || "io.github.stevederico.omarchy-gym")
       }
     }
 
@@ -760,9 +840,13 @@ Item {
 
           Text {
             width: endContent.width
-            text: root.passedStage
-              ? "Passed — next level unlocked"
-              : "Need C or better to unlock the next level"
+            text: {
+              if (root.passedStage)
+                return root.hasNextStage ? "Passed — next level unlocked" : "All stages complete"
+              return root.hasNextStage
+                ? "Need C or better to unlock the next level"
+                : "Try again to improve your grade"
+            }
             color: root.foreground
             opacity: 0.8
             wrapMode: Text.Wrap
@@ -775,7 +859,7 @@ Item {
             width: endContent.width
             height: 64
             radius: 8
-            visible: root.passedStage
+            visible: root.passedStage && root.hasNextStage
             color: nextMouse.containsMouse ? Color.accent : root.foreground
 
             Text {

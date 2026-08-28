@@ -54,7 +54,11 @@ var SCORABLE_KEYS = {
   BRACKETRIGHT: true,
   COMMA: true,
   SLASH: true,
-  PERIOD: true
+  PERIOD: true,
+  BACKSLASH: true,
+  SEMICOLON: true,
+  APOSTROPHE: true,
+  GRAVE: true
 }
 
 var i
@@ -1233,6 +1237,14 @@ var BAKED_PLAYABLE = [
   }
 ]
 
+BAKED_PLAYABLE = BAKED_PLAYABLE.filter(function (row) {
+  return !isGymControlChord(row.chord)
+})
+for (i = 0; i < BAKED_PLAYABLE.length; i++) {
+  BAKED_PLAYABLE[i].id = "kb." + i
+  BAKED_PLAYABLE[i].index = i
+}
+
 function tokenizeChord(raw) {
   return String(raw || "")
     .toUpperCase()
@@ -1359,6 +1371,7 @@ function isMouseChord(raw) {
 
 function dropReason(chord) {
   if (isMouseChord(chord)) return "mouse"
+  if (isGymControlChord(chord)) return "reserved for Gym control"
   var tokens = tokenizeChord(chord)
   if (tokens.length === 0) return "empty"
   var t
@@ -1373,6 +1386,10 @@ function dropReason(chord) {
   if (keyCount === 0) return "modifier-only"
   if (keyCount > 1) return "multi-key chord"
   return ""
+}
+
+function isGymControlChord(chord) {
+  return normalizeChord(chord) === "SUPER + W"
 }
 
 function parseKeybindingsPrint(text) {

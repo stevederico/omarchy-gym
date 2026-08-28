@@ -2,9 +2,12 @@
 
 Rows from `omarchy menu keybindings --print` that Gym cannot score from a Qt key event.
 They stay in the print fixture but are excluded from the playable pool.
+`catalog.json` preserves the raw Learn catalog; `GymLogic.js` applies these
+filters when it builds the playable pool.
 
 | Chord | Action | Reason |
 |---|---|---|
+| SUPER + W | Close window | reserved for Gym control |
 | SUPER + LEFT MOUSE BUTTON | Move window | mouse |
 | SUPER + RIGHT MOUSE BUTTON | Resize window | mouse |
 | SUPER ALT + mouse_down | Next window in group | mouse |

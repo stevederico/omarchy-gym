@@ -11,6 +11,6 @@
   ],
   "keepLoaded": true,
   "entryPoints": {
-    "overlay": "run/Gym.qml"
+    "overlay": "plugin/sd.gym/run/Gym.qml"
   }
 }
