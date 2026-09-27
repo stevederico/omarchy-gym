@@ -350,3 +350,30 @@ test("modifier-only keydowns are ignored until the non-modifier key arrives", ()
   )
   assert.equal(routed.action, "ignore")
 })
+
+test("Gym.qml reruns the keybindings command without a bare Process.exec()", () => {
+  const qml = fs.readFileSync(path.join(__dirname, "..", "plugin", "sd.gym", "run", "Gym.qml"), "utf8")
+  assert.doesNotMatch(qml, /\.exec\(\s*\)/, "Process.exec() without a command throws in Quickshell")
+  assert.match(qml, /catalogFallbackTimer\.restart\(\)/, "catalog refresh must arm the baked fallback")
+})
+
+test("baked fallback catalog is playable when the print command yields nothing", () => {
+  const parsed = gym.parseKeybindingsPrint("")
+  assert.equal(parsed.playable.length, 0)
+  const baked = gym.defaultPlayable()
+  assert.ok(baked.length >= 3, "baked catalog must cover stage 1")
+  const chart = gym.generateChart(baked, 1)
+  assert.ok(chart.notes.length > 0)
+  for (const row of baked) assert.equal(gym.dropReason(row.chord), "")
+})
+
+test("root and nested manifests describe the same plugin", () => {
+  const root = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "manifest.json"), "utf8"))
+  const nested = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "plugin", "sd.gym", "manifest.json"), "utf8"))
+  for (const field of ["schemaVersion", "id", "name", "version", "author", "license", "description"]) {
+    assert.equal(nested[field], root[field], "manifest field " + field + " drifted")
+  }
+  assert.deepEqual(nested.kinds, root.kinds)
+  assert.equal(root.entryPoints.overlay, "plugin/sd.gym/" + nested.entryPoints.overlay)
+  assert.ok(fs.existsSync(path.join(__dirname, "..", root.entryPoints.overlay)))
+})

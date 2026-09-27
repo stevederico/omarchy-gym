@@ -1,6 +1,5 @@
 import Quickshell
 import Quickshell.Io
-import Quickshell.Wayland
 import QtQuick
 import qs.Commons
 import qs.Ui
@@ -22,6 +21,7 @@ Item {
   property bool passedStage: false
   property int playedStage: 1
   property bool catalogLoaded: false
+  property bool catalogStalled: false
   property bool pendingChartStart: false
   property string catalogSource: "baked fallback"
   property string lastJudgement: ""
@@ -216,6 +216,7 @@ Item {
       root.catalogSource = "baked fallback"
     }
     root.catalogLoaded = true
+    catalogFallbackTimer.stop()
     console.log("io.github.stevederico.omarchy-gym catalog=" + root.catalogSource + " playable=" + root.playable.length)
     if (root.opened && root.pendingChartStart) root.startChart()
   }
@@ -223,7 +224,10 @@ Item {
   function refreshCatalog() {
     root.catalogLoaded = false
     root.pendingChartStart = true
-    keybindingsProcess.exec()
+    catalogFallbackTimer.restart()
+    if (!keybindingsProcess.running) root.catalogStalled = false
+    // Process.exec needs a command argument; rerun the declared command instead.
+    if (!keybindingsProcess.running) keybindingsProcess.running = true
   }
 
   function saveProgress() {
@@ -430,6 +434,20 @@ Item {
     }
   }
 
+  // A missing or stalled print command never finishes its stream, so the
+  // baked snapshot takes over after a short wait.
+  Timer {
+    id: catalogFallbackTimer
+    interval: 4000
+    repeat: false
+    onTriggered: {
+      if (root.catalogLoaded) return
+      root.catalogStalled = true
+      root.loadCatalog("")
+      keybindingsProcess.running = false
+    }
+  }
+
   FileView {
     id: progressFile
     path: root.progressPath
@@ -442,11 +460,17 @@ Item {
 
   Process {
     id: keybindingsProcess
-    command: ["omarchy", "menu", "keybindings", "--print"]
+    // timeout stops the whole process group, so a stalled scan leaves no
+    // child behind.
+    command: ["timeout", "3", "omarchy", "menu", "keybindings", "--print"]
     running: true
     stdout: StdioCollector {
       waitForEnd: true
-      onStreamFinished: root.loadCatalog(this.text)
+      onStreamFinished: {
+        // Output from a command stopped by the fallback is partial; skip it.
+        if (root.catalogStalled) return
+        root.loadCatalog(this.text)
+      }
     }
   }
 
