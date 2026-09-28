@@ -32,9 +32,17 @@ Item {
     fade.restart()
   }
 
+  // Follow the system default output, so headphones connected after the
+  // shell started still get the music.
+  MediaDevices { id: devices }
+
   MediaPlayer {
     id: media
-    audioOutput: AudioOutput { id: output; volume: player.volume }
+    audioOutput: AudioOutput {
+      id: output
+      device: devices.defaultAudioOutput
+      volume: player.volume
+    }
     onPositionChanged: player.positionReport(media.position)
     onErrorOccurred: function(error, errorString) {
       console.warn("io.github.stevederico.omarchy-gym song error: " + errorString)

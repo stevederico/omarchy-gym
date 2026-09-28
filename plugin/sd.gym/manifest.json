@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.stevederico.omarchy-gym",
   "name": "Gym",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "author": "sd",
   "license": "MIT",
   "description": "Keybinding rhythm game on a Rockstar Hero stage: chords roll down a five lane highway to rock songs. Chords are scored, never run.",

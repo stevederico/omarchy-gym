@@ -571,3 +571,9 @@ test("music is optional: SongPlayer loads through a Loader", () => {
   assert.match(player, /import QtMultimedia/)
   assert.match(qmlSource, /function syncToAudio\(ms\)/)
 })
+
+test("music follows the current default audio output", () => {
+  const player = fs.readFileSync(path.join(__dirname, "..", "plugin", "sd.gym", "run", "SongPlayer.qml"), "utf8")
+  assert.match(player, /MediaDevices \{ id: devices \}/)
+  assert.match(player, /device: devices\.defaultAudioOutput/)
+})
