@@ -1,3 +1,19 @@
+1.2.0
+
+  Rebuild on Rockstar Hero
+  Add perspective highway
+  Add stage lights, crowd
+  Add five modifier lanes
+  Add key gems
+  Add hit effects
+  Add combo multiplier
+  Add five stars
+  Unlock at three stars
+  Add three songs
+  Sync notes to music
+  Add song renderer
+  Add preview image
+
 1.1.1
 
   Fix F12 failsafe

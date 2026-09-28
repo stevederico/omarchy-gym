@@ -7,6 +7,7 @@ const path = require("path")
 
 const repoLogic = path.join(__dirname, "..", "plugin", "sd.gym", "run", "GymLogic.js")
 const gym = require(repoLogic)
+const stage = require(path.join(__dirname, "..", "plugin", "sd.gym", "run", "Stage.js"))
 const fixturePath = path.join(__dirname, "..", "plugin", "sd.gym", "keybindings-print.txt")
 const fixture = fs.readFileSync(fixturePath, "utf8")
 
@@ -88,13 +89,7 @@ test("stage-1 chart chords are a subset of the first 3 playable rows", () => {
   for (const note of chart.notes) {
     assert.ok(first3.has(note.chord), `stage-1 note ${note.chord} must be in first 3`)
     assert.ok(note.action, "note must carry the English action")
-    assert.equal(typeof note.lane, "number")
-    assert.ok(note.lane >= 0 && note.lane < gym.LANE_COUNT)
-  }
-  const lanes = new Set(chart.notes.map((note) => note.lane))
-  assert.ok(lanes.size >= 2, "stage-1 must use more than one of the four streams")
-  for (const lane of lanes) {
-    assert.ok(lane <= 2, "stage-1 first 3 catalog rows map to lanes 0-2")
+    assert.equal(note.lane, gym.laneForChord(note.chord), "lane comes from the modifiers")
   }
   for (let i = 1; i < chart.notes.length; i++) {
     assert.ok(
@@ -108,42 +103,30 @@ test("stage-1 chart chords are a subset of the first 3 playable rows", () => {
   }
 })
 
-test("hit is judged against the receptor line: Marvelous on the line, Perfect slightly off, late is Miss", () => {
+test("hit is judged against the strike line: Perfect on the line, Great slightly off, late is Miss", () => {
   const playable = gym.parseKeybindingsPrint(fixture).playable
   const chart = gym.generateChart(playable, 1)
   const note = chart.notes[0]
 
   const onLine = gym.scorePress(gym.emptyRun(chart), note.hitTimeMs, note.chord)
-  assert.equal(onLine.result, "Marvelous")
+  assert.equal(onLine.result, "Perfect")
   assert.equal(onLine.timing, "HIT")
   assert.equal(onLine.deltaMs, 0)
-  assert.equal(onLine.run.judgements[0], "Marvelous")
+  assert.equal(onLine.run.judgements[0], "Perfect")
   assert.equal(onLine.run.combo, 1)
-  assert.ok(onLine.run.score > 0)
-  assert.equal(gym.formatScore(onLine.run.score).length, 7)
+  assert.equal(onLine.run.score, gym.GRADE_POINTS.Perfect)
 
-  const early = gym.scorePress(
-    gym.emptyRun(chart),
-    note.hitTimeMs - (gym.WINDOW.marvelous + 8),
-    note.chord
-  )
-  assert.equal(early.result, "Perfect")
+  const early = gym.scorePress(gym.emptyRun(chart), note.hitTimeMs - (gym.WINDOW.perfect + 8), note.chord)
+  assert.equal(early.result, "Great")
   assert.equal(early.timing, "EARLY")
   assert.ok(early.deltaMs < 0)
 
-  const late = gym.scorePress(
-    gym.emptyRun(chart),
-    note.hitTimeMs + (gym.WINDOW.marvelous + 8),
-    note.chord
-  )
-  assert.equal(late.result, "Perfect")
+  const late = gym.scorePress(gym.emptyRun(chart), note.hitTimeMs + (gym.WINDOW.great + 8), note.chord)
+  assert.equal(late.result, "Good")
   assert.equal(late.timing, "LATE")
   assert.ok(late.deltaMs > 0)
 
-  const lateRun = gym.advanceChart(
-    gym.emptyRun(chart),
-    note.hitTimeMs + gym.WINDOW.good + 1
-  )
+  const lateRun = gym.advanceChart(gym.emptyRun(chart), note.hitTimeMs + gym.WINDOW.good + 1)
   assert.equal(lateRun.judgements[0], "Miss")
   assert.equal(lateRun.combo, 0)
 
@@ -161,9 +144,9 @@ test("ghost miss breaks combo and does not skip a note", () => {
   const first = chart.notes[0]
   const second = chart.notes[1]
   let result = gym.scorePress(gym.emptyRun(chart), first.hitTimeMs, first.chord)
-  assert.equal(result.result, "Marvelous")
+  assert.equal(result.result, "Perfect")
   assert.equal(result.run.combo, 1)
-  assert.equal(result.run.judgements[0], "Marvelous")
+  assert.equal(result.run.judgements[0], "Perfect")
   assert.equal(result.run.judgements[1], null)
 
   const midway = first.hitTimeMs + (second.hitTimeMs - first.hitTimeMs) / 2
@@ -201,13 +184,12 @@ test("combo resets on miss", () => {
   assert.equal(result.run.judgements[1], "Miss")
 })
 
-test("next stage unlocks only after a passing grade", () => {
+test("next stage unlocks only with three stars or more", () => {
   const playable = gym.parseKeybindingsPrint(fixture).playable
   const chart = gym.generateChart(playable, 1)
-  const failRun = gym.emptyRun(chart)
-  const missed = gym.advanceChart(failRun, chart.notes[chart.notes.length - 1].hitTimeMs + gym.WINDOW.good + 50)
-  assert.equal(gym.gradeForRun(missed), "F")
-  assert.equal(gym.isPassingGrade("F"), false)
+  const missed = gym.advanceChart(gym.emptyRun(chart), chart.notes[chart.notes.length - 1].hitTimeMs + gym.WINDOW.good + 50)
+  assert.equal(missed.chartComplete, true)
+  assert.equal(gym.starsForRun(missed), 0)
   let progress = gym.applyChartResult(gym.emptyProgress(), missed)
   assert.equal(progress.stage, 1)
   assert.equal(progress.highestStageCleared, 0)
@@ -215,14 +197,15 @@ test("next stage unlocks only after a passing grade", () => {
   let passRun = gym.emptyRun(chart)
   for (const note of chart.notes) {
     const scored = gym.scorePress(passRun, note.hitTimeMs, note.chord)
-    assert.equal(scored.result, "Marvelous")
+    assert.equal(scored.result, "Perfect")
     passRun = scored.run
   }
-  assert.equal(gym.gradeForRun(passRun), "S")
-  assert.equal(gym.isPassingGrade("S"), true)
+  assert.equal(gym.starsForRun(passRun), 5)
+  assert.equal(gym.isPassingStars(5), true)
   progress = gym.applyChartResult(gym.emptyProgress(), passRun)
   assert.equal(progress.stage, 2)
   assert.equal(progress.highestStageCleared, 1)
+  assert.equal(progress.bestStars["1"], 5)
   assert.ok(progress.highScore > 0)
 })
 
@@ -250,18 +233,29 @@ test("stage 1 notes fall slowly enough to read", () => {
   assert.ok(params.gapMs >= 2000, `stage-1 gap ${params.gapMs} should leave time between notes`)
 })
 
-test("four DDR streams: catalog index maps onto lanes 0-3", () => {
-  assert.equal(gym.LANE_COUNT, 4)
-  assert.equal(gym.laneForIndex(0), 0)
-  assert.equal(gym.laneForIndex(1), 1)
-  assert.equal(gym.laneForIndex(2), 2)
-  assert.equal(gym.laneForIndex(3), 3)
-  assert.equal(gym.laneForIndex(4), 0)
+test("five lanes by modifier: none, Super, Super+Shift, Super+Ctrl, Super+Alt", () => {
+  assert.equal(gym.LANE_COUNT, 5)
+  assert.deepEqual(gym.LANES.map((lane) => lane.label), ["KEY", "SUPER", "SUPER SHIFT", "SUPER CTRL", "SUPER ALT"])
+  assert.equal(gym.laneForChord("PRINT"), 0)
+  assert.equal(gym.laneForChord("CTRL + ALT + DELETE"), 0)
+  assert.equal(gym.laneForChord("SUPER + K"), 1)
+  assert.equal(gym.laneForChord("SUPER + SHIFT + F"), 2)
+  assert.equal(gym.laneForChord("SUPER + CTRL + L"), 3)
+  assert.equal(gym.laneForChord("SUPER + SHIFT + CTRL + SPACE"), 3, "Ctrl outranks Shift")
+  assert.equal(gym.laneForChord("SUPER + ALT + F"), 4)
+  assert.equal(gym.laneForChord("SUPER + SHIFT + ALT + B"), 4, "Alt outranks Shift")
   const playable = gym.parseKeybindingsPrint(fixture).playable
-  const chart = gym.generateChart(playable, 4)
-  for (const note of chart.notes) {
-    assert.ok(note.lane >= 0 && note.lane < 4)
-  }
+  const used = new Set(playable.map((row) => gym.laneForChord(row.chord)))
+  assert.deepEqual([...used].sort(), [0, 1, 2, 3, 4], "the stock catalog fills every lane")
+})
+
+test("gems show the key plus any modifier the lane does not", () => {
+  assert.equal(gym.noteGlyph("SUPER + K"), "K")
+  assert.equal(gym.noteGlyph("SUPER + RETURN"), "RET")
+  assert.equal(gym.noteGlyph("SUPER + SHIFT + SLASH"), "/")
+  assert.equal(gym.noteGlyph("SUPER + SHIFT + CTRL + SPACE"), "⇧ SPACE")
+  assert.equal(gym.noteGlyph("CTRL + ALT + DELETE"), "CTRL ALT DEL")
+  assert.equal(gym.noteGlyph("SUPER + LEFT"), "←")
 })
 
 test("bare Escape dismisses even when the chart is complete or mid-run", () => {
@@ -328,19 +322,39 @@ test("sandbox enter dispatch names omarchy-gym and leave is reset", () => {
   assert.equal(gym.GYM_SUBMAP, "omarchy-gym")
 })
 
-test("notes fall down: y increases as nowMs approaches the hit line", () => {
-  const note = { hitTimeMs: 2000 }
-  const spawnY = 0
-  const hitY = 800
-  const scrollMs = 2000
-  const yEarly = gym.noteY(note, 0, spawnY, hitY, scrollMs)
-  const yMid = gym.noteY(note, 1000, spawnY, hitY, scrollMs)
-  const yHit = gym.noteY(note, 2000, spawnY, hitY, scrollMs)
-  const yLate = gym.noteY(note, 2500, spawnY, hitY, scrollMs)
-  assert.ok(yEarly < yMid)
-  assert.ok(yMid < yHit)
-  assert.ok(yLate > yHit)
-  assert.equal(yHit, hitY)
+test("notes roll toward the strike line along the perspective highway", () => {
+  const layout = stage.computeLayout(1100, 700)
+  assert.equal(layout.isPortrait, false)
+  const lookahead = 2000
+  const at = (nowMs) => stage.project(layout, stage.laneCenter(2), stage.noteDepth(2000, nowMs, lookahead))
+  const far = at(0)
+  const mid = at(1000)
+  const hit = at(2000)
+  const past = at(2300)
+  assert.ok(far.y < mid.y && mid.y < hit.y && hit.y < past.y, "notes move down the screen")
+  assert.equal(hit.y, layout.strikeY)
+  assert.ok(stage.depthScale(1) < stage.depthScale(0), "far notes are smaller")
+  const left = stage.project(layout, stage.laneCenter(0), 0)
+  const right = stage.project(layout, stage.laneCenter(4), 0)
+  assert.ok(left.x < layout.centerX && right.x > layout.centerX)
+  assert.ok(stage.computeLayout(500, 900).isPortrait)
+})
+
+test("stage colors are plain rgba strings Qt's canvas accepts", () => {
+  assert.equal(stage.hsla(0, 100, 50), "rgba(255, 0, 0, 1)")
+  assert.equal(stage.hsla(120, 100, 50, 0.5), "rgba(0, 255, 0, 0.5)")
+  assert.match(stage.hsla(265, 65, 7.37, 0.123456), /^rgba\(\d+, \d+, \d+, 0\.123\)$/)
+  assert.equal(stage.rgba([1, 2, 3], 2), "rgba(1, 2, 3, 1)")
+})
+
+test("hit and miss effects appear and fade", () => {
+  const layout = stage.computeLayout(1100, 700)
+  const fx = stage.createEffects()
+  stage.effectsHit(fx, layout, 2, "Perfect")
+  stage.effectsMiss(fx, 3)
+  assert.ok(fx.particles.length > 0 && fx.rings.length === 1 && fx.popups.length === 2 && fx.shake > 0)
+  stage.updateEffects(fx, 2)
+  assert.equal(stage.hasEffects(fx), false)
 })
 
 test("modifier-only keydowns are ignored until the non-modifier key arrives", () => {
@@ -483,7 +497,7 @@ test("advanceChart returns the same run when no note timed out", () => {
   assert.equal(later.judgements[0], "Miss")
   assert.equal(run.judgements[0], null, "input run is not mutated")
   assert.equal(gym.advanceChart(later, first.hitTimeMs + gym.WINDOW.good + 2), later)
-  assert.match(qmlSource, /if \(next === root\.run\) return/)
+  assert.match(qmlSource, /if \(next !== root\.run\) root\.applyAdvance\(next\)/)
 })
 
 test("bundled keybindings are stock Omarchy, with no personal binds", () => {
@@ -496,4 +510,64 @@ test("bundled keybindings are stock Omarchy, with no personal binds", () => {
   assert.deepEqual(gym.BAKED_PLAYABLE.map((row) => row.chord), parsed.playable.map((row) => row.chord))
   const catalog = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "plugin", "sd.gym", "catalog.json"), "utf8"))
   assert.equal(catalog.length, parsed.playable.length + 1, "catalog keeps the reserved Super+W row")
+})
+
+test("each stage plays a Rockstar Hero song and its notes land on the music", () => {
+  assert.equal(gym.SONGS.length, 3)
+  assert.deepEqual([1, 2, 3, 4].map((s) => gym.songForStage(s).id), ["neon-backroads", "voltage-parade", "dragon-freeway", "neon-backroads"])
+  const playable = gym.defaultPlayable()
+  for (let stageNo = 1; stageNo <= gym.maxStage(playable.length); stageNo++) {
+    const song = gym.songForStage(stageNo)
+    assert.ok(fs.existsSync(path.join(__dirname, "..", "plugin", "sd.gym", song.file)), song.file + " is bundled")
+    const chart = gym.generateChart(playable, stageNo)
+    const heard = new Set(gym.songCandidateTimes(song))
+    assert.equal(chart.songId, song.id)
+    assert.ok(chart.notes[0].hitTimeMs >= gym.stageParams(stageNo).firstNoteMs)
+    for (const note of chart.notes) {
+      assert.ok(heard.has(note.hitTimeMs), `stage ${stageNo} note at ${note.hitTimeMs} ms is on an onset or beat`)
+    }
+    assert.ok(chart.endMs <= song.durationMs, `stage ${stageNo} ends before ${song.id} does`)
+  }
+})
+
+test("charts without a song fall back to even spacing", () => {
+  const chart = gym.generateChart(gym.defaultPlayable(), 1, null)
+  const params = gym.stageParams(1)
+  assert.equal(chart.songId, "")
+  assert.equal(chart.notes[0].hitTimeMs, params.firstNoteMs)
+  assert.equal(chart.notes[1].hitTimeMs - chart.notes[0].hitTimeMs, params.gapMs)
+})
+
+test("combo multiplier and stars follow Rockstar Hero", () => {
+  assert.equal(gym.comboMultiplier(0), 1)
+  assert.equal(gym.comboMultiplier(9), 1)
+  assert.equal(gym.comboMultiplier(10), 2)
+  assert.equal(gym.comboMultiplier(39), 4)
+  assert.equal(gym.comboMultiplier(500), gym.MAX_MULTIPLIER)
+  assert.deepEqual(gym.STAR_THRESHOLDS, [0.28, 0.35, 0.39, 0.6, 0.85])
+  assert.equal(gym.starsFor(27, 100), 0)
+  assert.equal(gym.starsFor(50, 100), 3)
+  assert.equal(gym.starsFor(85, 100), 5)
+  assert.equal(gym.formatScore(58496), "58,496")
+  assert.equal(gym.formatScore(1234567), "1,234,567")
+  // The 10th hit in a row already pays x2.
+  const chart = gym.generateChart(gym.defaultPlayable(), 1)
+  let run = gym.emptyRun(chart)
+  for (let i = 0; i < 10; i++) run = gym.scorePress(run, chart.notes[i].hitTimeMs, chart.notes[i].chord).run
+  assert.equal(run.score, 9 * 100 + 200)
+  assert.equal(run.starPoints, 10 * 100, "stars ignore the multiplier")
+})
+
+test("the song clock follows the audio once it drifts", () => {
+  assert.equal(gym.resyncOrigin(1000, 5000, 4000 - gym.AUDIO_RESYNC_MS), 1000, "small drift is left alone")
+  assert.equal(gym.resyncOrigin(1000, 5000, 3800), 1200)
+  assert.equal(gym.resyncOrigin(1000, 5000, 4100), 900)
+})
+
+test("music is optional: SongPlayer loads through a Loader", () => {
+  assert.match(qmlSource, /Loader \{\s*id: songLoader\s*source: "SongPlayer\.qml"/)
+  assert.doesNotMatch(qmlSource, /import QtMultimedia/, "Gym.qml must load without Qt Multimedia")
+  const player = fs.readFileSync(path.join(__dirname, "..", "plugin", "sd.gym", "run", "SongPlayer.qml"), "utf8")
+  assert.match(player, /import QtMultimedia/)
+  assert.match(qmlSource, /function syncToAudio\(ms\)/)
 })

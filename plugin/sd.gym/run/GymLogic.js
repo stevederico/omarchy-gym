@@ -1,6 +1,7 @@
-// Shared gym logic. overlay/Gym.qml imports this; Node tests require the same file.
-// Chart generation, catalog parse, timing, combo/score/grade, and progress
-// live here so node --test can drive them without QML.
+// Shared gym logic. run/Gym.qml imports this; Node tests require the same file.
+// Chart generation, catalog parse, timing, combo/score/stars, and progress
+// live here so node --test can drive them without QML. The rules follow
+// Rockstar Hero: Perfect/Great/Good, a x1 to x4 combo multiplier, 5 stars.
 
 var MOD_ORDER = ["SUPER", "SHIFT", "CTRL", "ALT"]
 
@@ -31,7 +32,7 @@ var MODIFIER_KEYS = {
   CONTROL: true
 }
 
-// Keys we can score from a Qt key event (see overlay/Gym.qml keyName).
+// Keys we can score from a Qt key event (see run/Gym.qml keyName).
 var SCORABLE_KEYS = {
   SPACE: true,
   RETURN: true,
@@ -66,44 +67,45 @@ for (i = 0; i < 26; i++) SCORABLE_KEYS[String.fromCharCode(65 + i)] = true
 for (i = 0; i < 10; i++) SCORABLE_KEYS[String(i)] = true
 for (i = 1; i <= 12; i++) SCORABLE_KEYS["F" + i] = true
 
-// DDR step-zone windows (ms from the receptor line). Keyboard Super-chords
-// are a bit slower than a pad, so these are DDR-like but slightly generous.
+// Hit windows in ms from the strike line. Chords take longer to press than a
+// guitar key, so these are wider than Rockstar Hero's 45/90/135.
 // delta < 0 = EARLY (note has not reached the line yet)
-// delta = 0 = on the line
 // delta > 0 = LATE (note already passed the line)
 var WINDOW = {
-  marvelous: 25,
   perfect: 70,
   great: 140,
   good: 250
 }
 
-var SCORE_MAX = 1000000
-
-var EMPTY_COUNTS = {
-  Marvelous: 0,
-  Perfect: 0,
-  Great: 0,
-  Good: 0,
-  Miss: 0
-}
-
-var PASSING_GRADES = { S: true, A: true, B: true, C: true }
+var GRADE_POINTS = { Perfect: 100, Great: 75, Good: 50 }
+var COMBO_PER_MULTIPLIER = 10
+var MAX_MULTIPLIER = 4
+// Share of the star points needed for each star. Star points leave out the
+// combo multiplier, so hitting about half the notes cleanly earns three stars.
+var STAR_THRESHOLDS = [0.28, 0.35, 0.39, 0.6, 0.85]
+var STARS_TO_PASS = 3
 
 var STAGE_START_SIZES = [3, 5, 10, 20]
 
-var LANE_COUNT = 4
+// Five lanes, one per modifier set, so the lane teaches the modifiers and the
+// gem shows the key.
+var LANE_COUNT = 5
+var LANES = [
+  { label: "KEY", mods: [] },
+  { label: "SUPER", mods: ["SUPER"] },
+  { label: "SUPER SHIFT", mods: ["SUPER", "SHIFT"] },
+  { label: "SUPER CTRL", mods: ["SUPER", "CTRL"] },
+  { label: "SUPER ALT", mods: ["SUPER", "ALT"] }
+]
 
-function laneForIndex(catalogIndex) {
-  var n = Number(catalogIndex)
-  if (!isFinite(n) || n < 0) n = 0
-  return Math.floor(n) % LANE_COUNT
-}
-
-// Hyprland binds run before layer-shell exclusive focus. While the gym is
-// open we enter this empty-ish submap so Super+Space etc. reach the overlay
-// instead of launching the real menu/terminal.
+// Hyprland binds run before a normal window sees the key. While Gym has focus
+// it enters this empty submap so Super+Space etc. are scored, not launched.
 var GYM_SUBMAP = "omarchy-gym"
+
+// Notes after the last one keep the song going this long before results.
+var CHART_TAIL_MS = 1500
+// Earliest first note, so the opening notes can scroll in from the far end.
+var FIRST_NOTE_MIN_MS = 2000
 
 // Populated after parse of the bundled print fixture (Node) or generated bake (QML).
 var BAKED_PLAYABLE = [
@@ -1249,6 +1251,44 @@ var BAKED_PLAYABLE = [
   }
 ]
 
+// Songs from Rockstar Hero, written by tools/write-songs.js.
+var SONGS = [
+  {
+    "id": "neon-backroads",
+    "title": "Neon Backroads",
+    "artist": "The Static Pilots",
+    "bpm": 112,
+    "durationMs": 104457,
+    "hue": 285,
+    "hueAlt": 190,
+    "file": "songs/neon-backroads.ogg",
+    "onsetsMs": [2143,3214,4286,5357,5893,6429,6830,7098,7232,7500,7768,8036,8304,8438,8571,8973,9241,9375,9643,9911,10179,10446,10580,10714,11116,11384,11518,11786,12054,12321,12589,12723,12857,13259,13527,13661,13929,14464,14732,14866,15000,15402,15670,15804,16071,16339,16607,16875,17009,17143,17545,17813,17946,18214,18482,18750,19018,19152,19286,19688,19955,20089,20357,20625,20893,21161,21295,21429,21830,22098,22232,22500,23036,23304,23438,23571,24107,24375,24643,25179,25446,25580,25714,26250,26518,26786,27321,27589,27723,27857,28393,28661,28929,29196,29464,29732,29866,30000,30268,30536,30804,31071,32143,32679,32946,33214,33750,34018,34152,34286,34821,35089,35357,35893,36161,36295,36429,36964,37232,37500,37768,38036,38304,38438,38571,38839,39107,39375,39643,40714,41116,41250,41384,41518,41786,41920,42054,42188,42321,42589,42723,42857,43259,43393,43527,43661,43929,44196,44464,44732,44866,45000,45402,45536,45670,45804,46071,46205,46339,46473,46607,46875,47009,47143,47545,47679,47813,47946,48214,48750,49018,49152,49286,49821,50089,50357,50893,51161,51295,51429,51964,52232,52500,53036,53304,53438,53571,54107,54375,54643,54911,55179,55446,55580,55714,55982,56250,56518,56786,57857,58393,58661,58929,59464,59732,59866,60000,60536,60804,61071,61607,61875,62009,62143,62679,62946,63214,63482,63750,64018,64152,64286,64554,64821,65089,65357,66429,66563,66696,66830,66964,67098,67232,67500,67768,68036,68304,68571,68839,69107,69375,69643,69777,69911,70045,70179,70313,70446,70714,70848,70982,71116,71250,71384,71518,71786,72054,72321,72589,72857,73125,73393,73661,73929,74063,74196,74330,74464,74598,74732,75000,75134,75268,75402,75536,75670,75804,76071,76339,76607,76875,77143,77411,77679,77946,78214,78348,78482,78616,78750,78884,79018,79286,79420,79554,79821,79955,80089,80357,80491,80625,80893,81027,81161,81429,81696,81964,82232,82500,83571,84107,84375,84643,85179,85446,85580,85714,86250,86518,86786,87321,87589,87723,87857,88393,88661,88929,89196,89464,89732,89866,90000,90268,90536,90804,91071,92143,92679,92946,93214,93750,94018,94152,94286,94821,95089,95357,95893,96161,96295,96429,96964,97232,97500,97768,98036,98304,98438,98571,98839,99107,99375,99643,100714]
+  },
+  {
+    "id": "voltage-parade",
+    "title": "Voltage Parade",
+    "artist": "Kid Capacitor",
+    "bpm": 140,
+    "durationMs": 97600,
+    "hue": 160,
+    "hueAlt": 40,
+    "file": "songs/voltage-parade.ogg",
+    "onsetsMs": [1714,3429,4286,4714,5143,5571,5786,6000,6214,6429,6643,6750,6857,7286,7500,7714,7929,8143,8357,8464,8571,9000,9214,9429,9643,9857,10071,10179,10286,10714,10929,11143,11357,11571,11786,11893,12000,12429,12643,12857,13071,13286,13500,13607,13714,14143,14357,14571,14786,15000,15214,15321,15429,15857,16071,16286,16500,16714,16929,17036,17143,17571,17786,18000,18214,18429,18643,18750,18857,19071,19179,19286,19500,19607,19714,19929,20036,20143,20357,20464,20571,20786,20893,21000,21214,21321,21429,21643,21750,21857,22071,22179,22286,22500,22607,22714,22929,23036,23143,23357,23464,23571,23786,23893,24000,24214,24321,24429,24643,24750,24857,25714,26357,26571,27000,27214,27321,27429,28071,28286,28714,28929,29036,29143,29786,30000,30429,30643,30750,30857,31286,31714,32143,32357,32464,32571,33214,33429,33857,34071,34179,34286,34929,35143,35571,35786,35893,36000,36643,36857,37286,37500,37607,37714,37929,38143,38357,38571,39429,39750,39857,40071,40286,40500,40714,40929,41036,41143,41464,41571,41786,42000,42214,42429,42643,42750,42857,43179,43286,43500,43714,43929,44143,44357,44464,44571,44893,45000,45214,45429,45643,45857,46071,46179,46286,46500,46607,46714,46929,47036,47143,47357,47464,47571,47786,47893,48000,48214,48321,48429,48643,48750,48857,49071,49179,49286,49500,49607,49714,49929,50036,50143,50357,50464,50571,50786,50893,51000,51214,51321,51429,51643,51750,51857,52071,52179,52286,53143,53786,54000,54429,54643,54750,54857,55500,55714,56143,56357,56464,56571,57214,57429,57857,58071,58179,58286,58714,59143,59571,59786,59893,60000,60643,60857,61286,61500,61607,61714,62357,62571,63000,63214,63321,63429,64071,64286,64714,64929,65036,65143,65357,65571,65786,66000,66857,67071,67286,67393,67500,67607,67714,67929,68143,68357,68464,68571,68786,69000,69107,69214,69429,69643,69750,69857,70071,70179,70286,70500,70714,70821,70929,71036,71143,71357,71571,71786,71893,72000,72214,72429,72536,72643,72857,73071,73179,73286,73500,73607,73714,73929,74143,74250,74357,74464,74571,74786,75000,75214,75321,75429,75643,75857,75964,76071,76286,76500,76607,76714,76929,77036,77143,77357,77571,77679,77786,77893,78000,78214,78429,78643,78750,78857,79071,79286,79500,79714,79821,79929,80036,80143,80571,81214,81429,81857,82071,82179,82286,82929,83143,83571,83786,83893,84000,84643,84857,85286,85500,85607,85714,86143,86571,87000,87214,87321,87429,88071,88286,88714,88929,89036,89143,89786,90000,90429,90643,90750,90857,91500,91714,92143,92357,92464,92571,92786,93000,93214,93429,94286]
+  },
+  {
+    "id": "dragon-freeway",
+    "title": "Dragon Freeway",
+    "artist": "Iron Lantern",
+    "bpm": 165,
+    "durationMs": 91782,
+    "hue": 12,
+    "hueAlt": 48,
+    "file": "songs/dragon-freeway.ogg",
+    "onsetsMs": [1455,2909,3636,4000,4364,5091,5818,6545,6909,7091,7273,7455,7545,7636,7818,7909,8000,8182,8273,8364,8545,8636,8727,8909,9000,9091,9273,9364,9455,9636,9727,9818,10000,10091,10182,10364,10455,10545,10727,10818,10909,11091,11182,11273,11455,11545,11636,11818,11909,12000,12182,12273,12364,12545,12636,12727,12909,13000,13091,13273,13364,13455,13636,13727,13818,14000,14091,14182,14364,14455,14545,14727,14818,14909,15091,15182,15273,15455,15545,15636,15818,15909,16000,16182,16273,16364,16545,16636,16727,16909,17000,17091,17273,17364,17455,17636,17727,17818,18000,18091,18182,18364,18455,18545,18727,18818,18909,19273,19636,20000,20364,20545,20727,20909,21091,21273,21455,21636,21818,22182,22545,22909,23273,23455,23636,23818,24000,24182,24364,24545,24727,25091,25273,25455,25818,26000,26182,26545,26727,26909,27273,27455,27636,28000,28182,28364,28727,28909,29091,29455,29636,29818,30182,30364,30545,30909,31091,31273,31636,31818,32000,32364,32545,32727,33091,33273,33455,33818,34000,34182,34545,34727,34909,35091,35273,35455,35636,35818,36000,36182,36364,36545,36636,36727,36909,37000,37091,37273,37364,37455,37636,37727,37818,38000,38091,38182,38364,38455,38545,38727,38818,38909,39091,39182,39273,39455,39545,39636,39818,39909,40000,40182,40273,40364,40545,40636,40727,40909,41000,41091,41273,41364,41455,41636,41727,41818,42000,42091,42182,42364,42455,42545,42727,42818,42909,43091,43182,43273,43455,43545,43636,43818,43909,44000,44182,44273,44364,44545,44636,44727,44909,45000,45091,45273,45364,45455,45636,45727,45818,46000,46091,46182,46364,46455,46545,46727,46818,46909,47091,47182,47273,47455,47545,47636,47818,47909,48000,48364,48727,49091,49455,49636,49818,50000,50182,50364,50545,50727,50909,51273,51636,52000,52364,52545,52727,52909,53091,53273,53455,53636,53818,54182,54364,54545,54909,55091,55273,55636,55818,56000,56364,56545,56727,57091,57273,57455,57818,58000,58182,58545,58727,58909,59273,59455,59636,60000,60182,60364,60727,60909,61091,61455,61636,61818,62182,62364,62545,62909,63091,63273,63636,63818,64000,64182,64364,64545,64727,64909,65091,65273,65455,65636,65818,66000,66182,66364,66545,66636,66727,66818,66909,67273,67455,67636,67818,68000,68364,68545,68727,68909,69091,69273,69455,69545,69636,69727,69818,70182,70364,70545,70727,70909,71273,71455,71636,71818,72000,72182,72364,72455,72545,72636,72727,73091,73273,73455,73636,73818,74000,74182,74364,74545,74727,74909,75091,75273,75455,75636,75818,76000,76182,76364,76545,76727,76909,77091,77455,77636,77818,78182,78364,78545,78909,79091,79273,79636,79818,80000,80364,80545,80727,81091,81273,81455,81818,82000,82182,82545,82727,82909,83273,83455,83636,84000,84182,84364,84727,84909,85091,85455,85636,85818,86182,86364,86545,86909,87091,87273,87455,87636,87818,88000,88182,88364,88545,88727]
+  }
+]
+// End of SONGS.
+
 BAKED_PLAYABLE = BAKED_PLAYABLE.filter(function (row) {
   return !isGymControlChord(row.chord)
 })
@@ -1529,6 +1569,59 @@ function poolForStage(playable, stage) {
   return list.slice(0, size)
 }
 
+
+// Lane for a chord: no Super, Super alone, then the strongest extra modifier
+// (Alt, then Ctrl, then Shift). Super+Shift+Ctrl sits in the Ctrl lane.
+function laneForChord(chord) {
+  var tokens = tokenizeChord(chord).map(canonicalToken)
+  if (tokens.indexOf("SUPER") === -1) return 0
+  if (tokens.indexOf("ALT") !== -1) return 4
+  if (tokens.indexOf("CTRL") !== -1) return 3
+  if (tokens.indexOf("SHIFT") !== -1) return 2
+  return 1
+}
+
+var KEY_GLYPHS = {
+  RETURN: "RET",
+  ESCAPE: "ESC",
+  BACKSPACE: "BKSP",
+  DELETE: "DEL",
+  PRINT: "PRT",
+  PAGEUP: "PGUP",
+  PAGEDOWN: "PGDN",
+  BRACKETLEFT: "[",
+  BRACKETRIGHT: "]",
+  MINUS: "-",
+  EQUAL: "=",
+  COMMA: ",",
+  PERIOD: ".",
+  SLASH: "/",
+  BACKSLASH: "\\",
+  SEMICOLON: ";",
+  APOSTROPHE: "'",
+  GRAVE: "`",
+  LEFT: "←",
+  RIGHT: "→",
+  UP: "↑",
+  DOWN: "↓"
+}
+
+// Text on a gem: the key, plus any modifier the lane does not already show.
+function noteGlyph(chord) {
+  var normalized = normalizeChord(chord)
+  if (!normalized) return ""
+  var parts = normalized.split(" + ")
+  var key = parts[parts.length - 1]
+  var implied = LANES[laneForChord(normalized)].mods
+  var shown = []
+  var p
+  for (p = 0; p < parts.length - 1; p++) {
+    if (implied.indexOf(parts[p]) === -1) shown.push(parts[p] === "SHIFT" ? "⇧" : parts[p])
+  }
+  shown.push(KEY_GLYPHS[key] || key)
+  return shown.join(" ")
+}
+
 function stageParams(stage) {
   var s = Math.max(1, Number(stage) || 1)
   var scrollMs = Math.max(1600, 4000 - (s - 1) * 200)
@@ -1538,8 +1631,56 @@ function stageParams(stage) {
     scrollMs: scrollMs,
     gapMs: gapMs,
     noteCount: noteCount,
-    leadInMs: scrollMs
+    firstNoteMs: Math.max(FIRST_NOTE_MIN_MS, scrollMs)
   }
+}
+
+function songForStage(stage) {
+  if (!SONGS.length) return null
+  var s = Math.max(1, Math.floor(Number(stage) || 1))
+  return SONGS[(s - 1) % SONGS.length]
+}
+
+function beatMs(song) {
+  return 60000 / (Number(song && song.bpm) || 120)
+}
+
+// Times the music gives us to land a note on: every lead guitar onset and
+// every beat, in order.
+function songCandidateTimes(song) {
+  if (!song) return []
+  var seen = {}
+  var out = []
+  var onsets = Array.isArray(song.onsetsMs) ? song.onsetsMs : []
+  var n
+  for (n = 0; n < onsets.length; n++) {
+    var t = Math.round(onsets[n])
+    if (!seen[t]) { seen[t] = true; out.push(t) }
+  }
+  var beat = beatMs(song)
+  var end = (Number(song.durationMs) || 0) - CHART_TAIL_MS
+  for (n = 0; n * beat <= end; n++) {
+    var b = Math.round(n * beat)
+    if (!seen[b]) { seen[b] = true; out.push(b) }
+  }
+  out.sort(function (a, b) { return a - b })
+  return out
+}
+
+// Note times at least gapMs apart, each snapped to the next thing you can hear.
+// Past the end of the song they fall back to an even spacing.
+function pickNoteTimes(song, count, gapMs, firstMs) {
+  var candidates = songCandidateTimes(song)
+  var times = []
+  var target = firstMs
+  var c = 0
+  while (times.length < count) {
+    while (c < candidates.length && candidates[c] < target) c++
+    var t = c < candidates.length ? candidates[c] : target
+    times.push(t)
+    target = t + gapMs
+  }
+  return times
 }
 
 function pickPoolIndex(poolLength, noteIndex, stage, prevIndex) {
@@ -1550,46 +1691,49 @@ function pickPoolIndex(poolLength, noteIndex, stage, prevIndex) {
   return idx
 }
 
-function generateChart(playable, stage) {
+function generateChart(playable, stage, song) {
   var s = Math.max(1, Number(stage) || 1)
+  if (song === undefined) song = songForStage(s)
   var pool = poolForStage(playable, s)
   var params = stageParams(s)
+  var times = pool.length ? pickNoteTimes(song, params.noteCount, params.gapMs, params.firstNoteMs) : []
   var notes = []
-  var t = params.leadInMs
   var prev = -1
   var n
-  for (n = 0; n < params.noteCount; n++) {
+  for (n = 0; n < times.length; n++) {
     var idx = pickPoolIndex(pool.length, n, s, prev)
     var binding = pool[idx] || pool[0]
-    if (!binding) break
     notes.push({
       index: notes.length,
       id: binding.id,
       chord: binding.chord,
       action: binding.action,
-      hitTimeMs: t,
-      lane: laneForIndex(binding.index)
+      hitTimeMs: times[n],
+      lane: laneForChord(binding.chord)
     })
     prev = idx
-    t += params.gapMs
   }
+  var last = notes.length ? notes[notes.length - 1].hitTimeMs : 0
   return {
     stage: s,
     poolSize: pool.length,
     catalogLength: Array.isArray(playable) ? playable.length : 0,
     notes: notes,
     scrollMs: params.scrollMs,
-    gapMs: params.gapMs
+    gapMs: params.gapMs,
+    songId: song ? song.id : "",
+    endMs: last + WINDOW.good + CHART_TAIL_MS
   }
 }
 
 function emptyProgress() {
   return {
-    version: 2,
+    version: 3,
     stage: 1,
     highestStageCleared: 0,
     highScore: 0,
     highScores: {},
+    bestStars: {},
     exercises: {},
     workoutsCompleted: []
   }
@@ -1613,6 +1757,7 @@ function parseProgress(raw) {
     var high = Number(parsed.highScore)
     if (high >= 0) next.highScore = high
     if (parsed.highScores && typeof parsed.highScores === "object") next.highScores = parsed.highScores
+    if (parsed.bestStars && typeof parsed.bestStars === "object") next.bestStars = parsed.bestStars
     return next
   } catch (err) {
     return emptyProgress()
@@ -1621,6 +1766,10 @@ function parseProgress(raw) {
 
 function serializeProgress(progress) {
   return JSON.stringify(cloneProgress(progress), null, 2) + "\n"
+}
+
+function emptyCounts() {
+  return { Perfect: 0, Great: 0, Good: 0, Miss: 0 }
 }
 
 function emptyRun(chart) {
@@ -1634,17 +1783,12 @@ function emptyRun(chart) {
     combo: 0,
     maxCombo: 0,
     score: 0,
+    starPoints: 0,
     ghostMisses: 0,
     lastDeltaMs: 0,
     lastTiming: "",
     lastHitAt: -9999,
-    counts: {
-      Marvelous: 0,
-      Perfect: 0,
-      Great: 0,
-      Good: 0,
-      Miss: 0
-    },
+    counts: emptyCounts(),
     chartComplete: notes.length === 0
   }
 }
@@ -1664,7 +1808,6 @@ function firstUnscoredIndex(run) {
 
 function judgementForDelta(deltaMs) {
   var a = Math.abs(Number(deltaMs) || 0)
-  if (a <= WINDOW.marvelous) return "Marvelous"
   if (a <= WINDOW.perfect) return "Perfect"
   if (a <= WINDOW.great) return "Great"
   if (a <= WINDOW.good) return "Good"
@@ -1673,31 +1816,43 @@ function judgementForDelta(deltaMs) {
 
 function timingLabel(deltaMs) {
   var d = Number(deltaMs) || 0
-  if (Math.abs(d) <= WINDOW.marvelous) return "HIT"
+  if (Math.abs(d) <= WINDOW.perfect) return "HIT"
   if (d < 0) return "EARLY"
   return "LATE"
 }
 
-function stepScore(chart) {
-  var n = chart && Array.isArray(chart.notes) ? chart.notes.length : 0
-  if (n < 1) n = 1
-  return Math.floor(SCORE_MAX / n)
+function comboMultiplier(combo) {
+  return Math.min(MAX_MULTIPLIER, 1 + Math.floor((Number(combo) || 0) / COMBO_PER_MULTIPLIER))
 }
 
-function pointsFor(judgement, combo, chart) {
-  var sc = stepScore(chart)
-  if (judgement === "Marvelous") return sc
-  if (judgement === "Perfect") return Math.max(0, sc - 10)
-  if (judgement === "Great") return Math.max(0, Math.floor(sc / 2) - 10)
-  if (judgement === "Good") return Math.max(0, Math.floor(sc / 5) - 10)
-  return 0
+function maxStarPoints(chart) {
+  var notes = chart && Array.isArray(chart.notes) ? chart.notes : []
+  return notes.length * GRADE_POINTS.Perfect
 }
 
+function starsFor(points, maxPoints) {
+  if (!(maxPoints > 0)) return 0
+  var share = points / maxPoints
+  var stars = 0
+  var t
+  for (t = 0; t < STAR_THRESHOLDS.length; t++) {
+    if (share >= STAR_THRESHOLDS[t]) stars += 1
+  }
+  return stars
+}
+
+function starsForRun(run) {
+  return starsFor(Number(run && run.starPoints) || 0, maxStarPoints(run && run.chart))
+}
+
+function isPassingStars(stars) {
+  return (Number(stars) || 0) >= STARS_TO_PASS
+}
+
+// Score with thousands separators, like Rockstar Hero's HUD.
 function formatScore(score) {
-  var n = Math.max(0, Math.floor(Number(score) || 0))
-  var s = String(n)
-  while (s.length < 7) s = "0" + s
-  return s
+  var s = String(Math.max(0, Math.floor(Number(score) || 0)))
+  return s.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
 }
 
 function noteInWindow(note, nowMs) {
@@ -1706,32 +1861,29 @@ function noteInWindow(note, nowMs) {
 }
 
 function bumpCount(run, judgement) {
-  if (!run.counts) run.counts = {
-    Marvelous: 0, Perfect: 0, Great: 0, Good: 0, Miss: 0
-  }
+  if (!run.counts) run.counts = emptyCounts()
   if (run.counts[judgement] === undefined) run.counts[judgement] = 0
   run.counts[judgement] += 1
 }
 
+// Hits raise the combo first and then score, so the 10th hit in a row
+// already pays x2, as in Rockstar Hero.
 function applyJudgement(run, index, judgement) {
   run.judgements[index] = judgement
   bumpCount(run, judgement)
   if (judgement === "Miss") {
     run.combo = 0
-  } else {
-    run.combo += 1
-    if (run.combo > run.maxCombo) run.maxCombo = run.combo
-    run.score += pointsFor(judgement, run.combo, run.chart)
-    run.lastHitAt = Number(run.lastHitAt)
+    return
   }
+  run.combo += 1
+  if (run.combo > run.maxCombo) run.maxCombo = run.combo
+  var base = GRADE_POINTS[judgement] || 0
+  run.starPoints += base
+  run.score += base * comboMultiplier(run.combo)
 }
 
 function maybeComplete(run) {
   var judgements = run.judgements || []
-  if (judgements.length === 0) {
-    run.chartComplete = true
-    return run
-  }
   var i
   for (i = 0; i < judgements.length; i++) {
     if (!judgements[i]) {
@@ -1757,16 +1909,11 @@ function advanceChart(run, nowMs) {
   }
   if (!due) return run
   var next = cloneRun(run)
-  var chart = next.chart || {}
-  var notes = Array.isArray(chart.notes) ? chart.notes : []
+  var notes = next.chart.notes
   var i
   for (i = 0; i < notes.length; i++) {
     if (next.judgements[i]) continue
-    if (nowMs > notes[i].hitTimeMs + WINDOW.good) {
-      next.judgements[i] = "Miss"
-      next.combo = 0
-      bumpCount(next, "Miss")
-    }
+    if (nowMs > notes[i].hitTimeMs + WINDOW.good) applyJudgement(next, i, "Miss")
   }
   return maybeComplete(next)
 }
@@ -1822,35 +1969,24 @@ function accuracyForRun(run) {
   var i
   for (i = 0; i < judgements.length; i++) {
     var j = judgements[i]
-    if (j === "Marvelous" || j === "Perfect" || j === "Great" || j === "Good") hits += 1
+    if (j === "Perfect" || j === "Great" || j === "Good") hits += 1
   }
   return hits / judgements.length
-}
-
-function gradeForRun(run) {
-  var acc = accuracyForRun(run)
-  if (acc >= 0.95) return "S"
-  if (acc >= 0.90) return "A"
-  if (acc >= 0.80) return "B"
-  if (acc >= 0.70) return "C"
-  return "F"
-}
-
-function isPassingGrade(grade) {
-  return !!PASSING_GRADES[grade]
 }
 
 function applyChartResult(progress, run) {
   var next = cloneProgress(progress)
   var chart = run && run.chart ? run.chart : {}
   var stage = Number(chart.stage) || 1
-  var grade = gradeForRun(run)
+  var stars = starsForRun(run)
   var score = Number(run && run.score) || 0
+  var key = String(stage)
   if (score > (Number(next.highScore) || 0)) next.highScore = score
   if (!next.highScores || typeof next.highScores !== "object") next.highScores = {}
-  var key = String(stage)
   if (score > (Number(next.highScores[key]) || 0)) next.highScores[key] = score
-  if (isPassingGrade(grade)) {
+  if (!next.bestStars || typeof next.bestStars !== "object") next.bestStars = {}
+  if (stars > (Number(next.bestStars[key]) || 0)) next.bestStars[key] = stars
+  if (isPassingStars(stars)) {
     next.highestStageCleared = Math.max(Number(next.highestStageCleared) || 0, stage)
     var cap = maxStage(Number(chart.catalogLength) || 0)
     if (cap < 1) cap = stage
@@ -1890,24 +2026,35 @@ function catalogTextForExit(exitCode, text) {
   return Number(exitCode) === 0 ? String(text || "") : ""
 }
 
-function noteY(note, nowMs, spawnY, hitY, scrollMs) {
-  var travel = hitY - spawnY
-  var ms = Number(scrollMs) || 1
-  var progress = (nowMs - (note.hitTimeMs - ms)) / ms
-  return spawnY + progress * travel
+// Keep the song clock on the audio position once it drifts past this.
+var AUDIO_RESYNC_MS = 45
+
+// New clock origin (Date.now() at song time 0) given where the audio says it is.
+function resyncOrigin(origin, wallMs, audioMs) {
+  var clock = wallMs - origin
+  if (Math.abs(clock - audioMs) <= AUDIO_RESYNC_MS) return origin
+  return wallMs - audioMs
 }
 
 if (typeof module !== "undefined") {
   module.exports = {
     WINDOW: WINDOW,
-    SCORE_MAX: SCORE_MAX,
+    GRADE_POINTS: GRADE_POINTS,
+    STAR_THRESHOLDS: STAR_THRESHOLDS,
+    STARS_TO_PASS: STARS_TO_PASS,
+    MAX_MULTIPLIER: MAX_MULTIPLIER,
+    CHART_TAIL_MS: CHART_TAIL_MS,
+    FIRST_NOTE_MIN_MS: FIRST_NOTE_MIN_MS,
+    AUDIO_RESYNC_MS: AUDIO_RESYNC_MS,
     formatScore: formatScore,
     timingLabel: timingLabel,
-    stepScore: stepScore,
     GYM_SUBMAP: GYM_SUBMAP,
     LANE_COUNT: LANE_COUNT,
+    LANES: LANES,
+    SONGS: SONGS,
     STAGE_START_SIZES: STAGE_START_SIZES,
-    laneForIndex: laneForIndex,
+    laneForChord: laneForChord,
+    noteGlyph: noteGlyph,
     tokenizeChord: tokenizeChord,
     canonicalToken: canonicalToken,
     normalizeChord: normalizeChord,
@@ -1919,6 +2066,7 @@ if (typeof module !== "undefined") {
     isDuplicatePress: isDuplicatePress,
     DUPLICATE_PRESS_MS: DUPLICATE_PRESS_MS,
     catalogTextForExit: catalogTextForExit,
+    resyncOrigin: resyncOrigin,
     chordFromParts: chordFromParts,
     isBareEscape: isBareEscape,
     isBareReturn: isBareReturn,
@@ -1938,6 +2086,9 @@ if (typeof module !== "undefined") {
     maxStage: maxStage,
     poolForStage: poolForStage,
     stageParams: stageParams,
+    songForStage: songForStage,
+    songCandidateTimes: songCandidateTimes,
+    pickNoteTimes: pickNoteTimes,
     generateChart: generateChart,
     emptyProgress: emptyProgress,
     parseProgress: parseProgress,
@@ -1945,13 +2096,15 @@ if (typeof module !== "undefined") {
     emptyRun: emptyRun,
     firstUnscoredIndex: firstUnscoredIndex,
     judgementForDelta: judgementForDelta,
+    comboMultiplier: comboMultiplier,
+    maxStarPoints: maxStarPoints,
+    starsFor: starsFor,
+    starsForRun: starsForRun,
+    isPassingStars: isPassingStars,
     advanceChart: advanceChart,
     scorePress: scorePress,
-    gradeForRun: gradeForRun,
     accuracyForRun: accuracyForRun,
-    isPassingGrade: isPassingGrade,
     applyChartResult: applyChartResult,
-    routeKeyEvent: routeKeyEvent,
-    noteY: noteY
+    routeKeyEvent: routeKeyEvent
   }
 }

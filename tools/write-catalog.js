@@ -32,7 +32,7 @@ fs.writeFileSync(path.join(pluginDir, "catalog.json"), JSON.stringify(catalog, n
 
 const logic = fs.readFileSync(logicPath, "utf8")
 const start = logic.indexOf("var BAKED_PLAYABLE = [")
-const end = logic.indexOf("\n\nBAKED_PLAYABLE = BAKED_PLAYABLE.filter")
+const end = logic.indexOf("\n\n// Songs from Rockstar Hero")
 if (start < 0 || end < 0) throw new Error("BAKED_PLAYABLE block not found in GymLogic.js")
 fs.writeFileSync(
   logicPath,

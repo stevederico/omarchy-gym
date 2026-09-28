@@ -1,15 +1,32 @@
 # Omarchy Gym
 
-Rhythm-game keybinding workouts for [Omarchy](https://omarchy.org/) Quattro.
+Rhythm-game keybinding workouts for [Omarchy](https://omarchy.org/) Quattro,
+built on the stage, highway, and songs of Rockstar Hero.
 
-Gym is a **normal tiled window**. Dots fall down four DDR-style streams
-(← ↓ ↑ →) toward receptors at the bottom. Press the matching chord as a dot
-hits the ring. Marvelous / Perfect / Great / Good are scored; late or wrong
-presses are misses. Gym never dispatches the real Hyprland or Omarchy action.
+![Gym: gems rolling down a five lane highway toward the strike line](preview.png)
 
-The chart follows the **Learn → Keybindings** order. It starts with the first
-3 playable keyboard chords, then expands to 5, 10, 20, 40, and so on. A stage
-grade of C or better unlocks the next pool. The chart is silent in v1.
+Gym is a **normal tiled window**. Gems roll down a five lane highway toward
+the strike line while a rock song plays. Press the chord on a gem as it
+reaches the line. Gym never runs the real Hyprland or Omarchy action.
+
+## How it plays
+
+- **Lanes are modifiers**: `KEY` (no Super), `SUPER`, `SUPER SHIFT`,
+  `SUPER CTRL`, and `SUPER ALT`. The gem shows the key, so lane plus gem is
+  the chord. A chord with Shift and Ctrl sits in the Ctrl lane, and the gem
+  adds `⇧`.
+- **Timing grades**: Perfect, Great, and Good, worth 100, 75, and 50 points.
+  A late or wrong chord is a miss.
+- **Combo multiplier**: every 10 hits in a row adds one, up to x4.
+- **Stars**: up to five per stage, from the share of notes hit and how
+  cleanly. Three stars unlock the next stage.
+- **Stages**: the chart follows the **Learn → Keybindings** order. It starts
+  with the first 3 playable chords, then expands to 5, 10, 20, 40, and so on.
+  Notes speed up and come closer together as stages rise.
+- **Songs**: each stage plays one of Rockstar Hero's three songs (Neon
+  Backroads, Voltage Parade, Dragon Freeway). Every note lands on a guitar
+  note or a beat you can hear.
+
 Each time Gym opens, it reads the current `omarchy menu keybindings --print`
 output. `catalog.json` and `keybindings-print.txt` preserve a bundled snapshot
 of stock Omarchy bindings; `GymLogic.js` applies the documented filters before
@@ -22,6 +39,8 @@ excluded from scoring. See `plugin/sd.gym/DROPS.md`.
 ## Requirements and safety
 
 - Omarchy Quattro with the Quickshell shell and Hyprland.
+- Qt Multimedia (`qt6-multimedia`) for music. Omarchy's `flea` and `omacut`
+  already pull it in. Without it, Gym plays silent.
 - A user-configured `omarchy-gym` Hyprland submap; see
   `extra/omarchy-gym-submap.lua` (Lua config) or
   `extra/omarchy-gym-submap.conf` (hyprlang config).
@@ -132,6 +151,22 @@ To rebuild that fixture, `catalog.json`, the baked list in `GymLogic.js`, and
 ```sh
 tools/regen-stock-keybindings.sh
 ```
+
+The songs in `plugin/sd.gym/songs/` are rendered from a Rockstar Hero
+checkout with its own WebAudio synth. To render them again (needs that
+checkout with `node_modules`, `ffmpeg`, and a Chromium based browser):
+
+```sh
+RIFF_HERO_DIR=~/Projects/riff-hero tools/render-songs.sh
+```
+
+`run/Stage.js` is a port of Rockstar Hero's Canvas 2D renderer to Qt's
+canvas; `run/GymLogic.js` holds the rules and is what the tests drive.
+
+## Credits
+
+The songs, stage art, highway, and scoring rules come from Rockstar Hero by
+the same author, also MIT. Songs and bands are original and fictional.
 
 ## License
 

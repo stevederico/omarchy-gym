@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "io.github.stevederico.omarchy-gym",
   "name": "Gym",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "author": "sd",
   "license": "MIT",
-  "description": "Falling-note Omarchy keybinding gym. Normal window: chords are scored, never dispatched.",
+  "description": "Keybinding rhythm game on a Rockstar Hero stage: chords roll down a five lane highway to rock songs. Chords are scored, never run.",
   "kinds": [
     "overlay"
   ],
