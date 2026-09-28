@@ -1,3 +1,8 @@
+1.2.1
+
+  Remove Vite cache
+  Ignore .vite folders
+
 1.2.0
 
   Rebuild on Rockstar Hero
