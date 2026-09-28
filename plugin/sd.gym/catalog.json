@@ -572,558 +572,576 @@
   {
     "id": "kb.95",
     "index": 95,
-    "chord": "SHIFT + ALT + D",
-    "action": "Download Video from Web App"
+    "chord": "F9",
+    "action": "Start dictation (push-to-talk)"
   },
   {
     "id": "kb.96",
     "index": 96,
-    "chord": "SHIFT + ALT + L",
-    "action": "Copy URL from Web App"
+    "chord": "F9",
+    "action": "Stop dictation (push-to-talk)"
   },
   {
     "id": "kb.97",
     "index": 97,
-    "chord": "SUPER + ALT + BRACKETLEFT",
-    "action": "Make webcam overlay smaller"
+    "chord": "SHIFT + ALT + D",
+    "action": "Download Video from Web App"
   },
   {
     "id": "kb.98",
     "index": 98,
-    "chord": "SUPER + ALT + BRACKETRIGHT",
-    "action": "Make webcam overlay larger"
+    "chord": "SHIFT + ALT + L",
+    "action": "Copy URL from Web App"
   },
   {
     "id": "kb.99",
     "index": 99,
-    "chord": "SUPER + ALT + HOME",
-    "action": "Save window width"
+    "chord": "SUPER + ALT + BRACKETLEFT",
+    "action": "Make webcam overlay smaller"
   },
   {
     "id": "kb.100",
     "index": 100,
-    "chord": "SUPER + ALT + SLASH",
-    "action": "Monitor scaling down"
+    "chord": "SUPER + ALT + BRACKETRIGHT",
+    "action": "Make webcam overlay larger"
   },
   {
     "id": "kb.101",
     "index": 101,
-    "chord": "SUPER + ALT + SPACE",
-    "action": "Apps menu"
+    "chord": "SUPER + ALT + HOME",
+    "action": "Save window width"
   },
   {
     "id": "kb.102",
     "index": 102,
-    "chord": "SUPER + CTRL + 1",
-    "action": "Bar panel 1"
+    "chord": "SUPER + ALT + SLASH",
+    "action": "Monitor scaling down"
   },
   {
     "id": "kb.103",
     "index": 103,
-    "chord": "SUPER + CTRL + 2",
-    "action": "Bar panel 2"
+    "chord": "SUPER + ALT + SPACE",
+    "action": "Apps menu"
   },
   {
     "id": "kb.104",
     "index": 104,
-    "chord": "SUPER + CTRL + 3",
-    "action": "Bar panel 3"
+    "chord": "SUPER + CTRL + 1",
+    "action": "Bar panel 1"
   },
   {
     "id": "kb.105",
     "index": 105,
-    "chord": "SUPER + CTRL + 4",
-    "action": "Bar panel 4"
+    "chord": "SUPER + CTRL + 2",
+    "action": "Bar panel 2"
   },
   {
     "id": "kb.106",
     "index": 106,
-    "chord": "SUPER + CTRL + 5",
-    "action": "Bar panel 5"
+    "chord": "SUPER + CTRL + 3",
+    "action": "Bar panel 3"
   },
   {
     "id": "kb.107",
     "index": 107,
-    "chord": "SUPER + CTRL + 6",
-    "action": "Bar panel 6"
+    "chord": "SUPER + CTRL + 4",
+    "action": "Bar panel 4"
   },
   {
     "id": "kb.108",
     "index": 108,
-    "chord": "SUPER + CTRL + 7",
-    "action": "Bar panel 7"
+    "chord": "SUPER + CTRL + 5",
+    "action": "Bar panel 5"
   },
   {
     "id": "kb.109",
     "index": 109,
-    "chord": "SUPER + CTRL + 8",
-    "action": "Bar panel 8"
+    "chord": "SUPER + CTRL + 6",
+    "action": "Bar panel 6"
   },
   {
     "id": "kb.110",
     "index": 110,
-    "chord": "SUPER + CTRL + 9",
-    "action": "Bar panel 9"
+    "chord": "SUPER + CTRL + 7",
+    "action": "Bar panel 7"
   },
   {
     "id": "kb.111",
     "index": 111,
-    "chord": "SUPER + CTRL + A",
-    "action": "Audio"
+    "chord": "SUPER + CTRL + 8",
+    "action": "Bar panel 8"
   },
   {
     "id": "kb.112",
     "index": 112,
-    "chord": "SUPER + CTRL + ALT + B",
-    "action": "Show battery remaining"
+    "chord": "SUPER + CTRL + 9",
+    "action": "Bar panel 9"
   },
   {
     "id": "kb.113",
     "index": 113,
-    "chord": "SUPER + CTRL + ALT + D",
-    "action": "Calendar"
+    "chord": "SUPER + CTRL + A",
+    "action": "Audio"
   },
   {
     "id": "kb.114",
     "index": 114,
-    "chord": "SUPER + CTRL + ALT + DELETE",
-    "action": "Toggle laptop display mirroring"
+    "chord": "SUPER + CTRL + ALT + B",
+    "action": "Show battery remaining"
   },
   {
     "id": "kb.115",
     "index": 115,
-    "chord": "SUPER + CTRL + ALT + R",
-    "action": "Show reminders"
+    "chord": "SUPER + CTRL + ALT + D",
+    "action": "Calendar"
   },
   {
     "id": "kb.116",
     "index": 116,
-    "chord": "SUPER + CTRL + ALT + T",
-    "action": "Show time"
+    "chord": "SUPER + CTRL + ALT + DELETE",
+    "action": "Toggle laptop display mirroring"
   },
   {
     "id": "kb.117",
     "index": 117,
-    "chord": "SUPER + CTRL + ALT + W",
-    "action": "Toggle weather"
+    "chord": "SUPER + CTRL + ALT + R",
+    "action": "Show reminders"
   },
   {
     "id": "kb.118",
     "index": 118,
-    "chord": "SUPER + CTRL + ALT + Z",
-    "action": "Reset zoom"
+    "chord": "SUPER + CTRL + ALT + T",
+    "action": "Show time"
   },
   {
     "id": "kb.119",
     "index": 119,
-    "chord": "SUPER + CTRL + BACKSPACE",
-    "action": "Toggle single-window square aspect"
+    "chord": "SUPER + CTRL + ALT + W",
+    "action": "Toggle weather"
   },
   {
     "id": "kb.120",
     "index": 120,
-    "chord": "SUPER + CTRL + B",
-    "action": "Bluetooth"
+    "chord": "SUPER + CTRL + ALT + Z",
+    "action": "Reset zoom"
   },
   {
     "id": "kb.121",
     "index": 121,
-    "chord": "SUPER + CTRL + C",
-    "action": "Capture menu"
+    "chord": "SUPER + CTRL + BACKSPACE",
+    "action": "Toggle single-window square aspect"
   },
   {
     "id": "kb.122",
     "index": 122,
-    "chord": "SUPER + CTRL + D",
-    "action": "Display"
+    "chord": "SUPER + CTRL + B",
+    "action": "Bluetooth"
   },
   {
     "id": "kb.123",
     "index": 123,
-    "chord": "SUPER + CTRL + DELETE",
-    "action": "Toggle laptop display"
+    "chord": "SUPER + CTRL + C",
+    "action": "Capture menu"
   },
   {
     "id": "kb.124",
     "index": 124,
-    "chord": "SUPER + CTRL + F",
-    "action": "Tiled full screen"
+    "chord": "SUPER + CTRL + D",
+    "action": "Display"
   },
   {
     "id": "kb.125",
     "index": 125,
-    "chord": "SUPER + CTRL + H",
-    "action": "Hardware menu"
+    "chord": "SUPER + CTRL + DELETE",
+    "action": "Toggle laptop display"
   },
   {
     "id": "kb.126",
     "index": 126,
-    "chord": "SUPER + CTRL + O",
-    "action": "Toggle menu"
+    "chord": "SUPER + CTRL + F",
+    "action": "Tiled full screen"
   },
   {
     "id": "kb.127",
     "index": 127,
-    "chord": "SUPER + CTRL + PERIOD",
-    "action": "Transcode"
+    "chord": "SUPER + CTRL + H",
+    "action": "Hardware menu"
   },
   {
     "id": "kb.128",
     "index": 128,
-    "chord": "SUPER + CTRL + P",
-    "action": "Power"
+    "chord": "SUPER + CTRL + O",
+    "action": "Toggle menu"
   },
   {
     "id": "kb.129",
     "index": 129,
-    "chord": "SUPER + CTRL + PRINT",
-    "action": "Extract text (OCR) from screenshot"
+    "chord": "SUPER + CTRL + PERIOD",
+    "action": "Transcode"
   },
   {
     "id": "kb.130",
     "index": 130,
-    "chord": "SUPER + CTRL + Q",
-    "action": "Calculator"
+    "chord": "SUPER + CTRL + P",
+    "action": "Power"
   },
   {
     "id": "kb.131",
     "index": 131,
-    "chord": "SUPER + CTRL + R",
-    "action": "Set reminder"
+    "chord": "SUPER + CTRL + PRINT",
+    "action": "Extract text (OCR) from screenshot"
   },
   {
     "id": "kb.132",
     "index": 132,
-    "chord": "SUPER + CTRL + SPACE",
-    "action": "Background switcher"
+    "chord": "SUPER + CTRL + Q",
+    "action": "Calculator"
   },
   {
     "id": "kb.133",
     "index": 133,
-    "chord": "SUPER + CTRL + S",
-    "action": "Share"
+    "chord": "SUPER + CTRL + R",
+    "action": "Set reminder"
   },
   {
     "id": "kb.134",
     "index": 134,
-    "chord": "SUPER + CTRL + T",
-    "action": "Activity"
+    "chord": "SUPER + CTRL + SPACE",
+    "action": "Background switcher"
   },
   {
     "id": "kb.135",
     "index": 135,
-    "chord": "SUPER + CTRL + W",
-    "action": "Network"
+    "chord": "SUPER + CTRL + S",
+    "action": "Share"
   },
   {
     "id": "kb.136",
     "index": 136,
-    "chord": "SUPER + CTRL + Z",
-    "action": "Zoom in"
+    "chord": "SUPER + CTRL + T",
+    "action": "Activity"
   },
   {
     "id": "kb.137",
     "index": 137,
-    "chord": "SUPER + HOME",
-    "action": "Restore window width"
+    "chord": "SUPER + CTRL + W",
+    "action": "Network"
   },
   {
     "id": "kb.138",
     "index": 138,
-    "chord": "SUPER + L",
-    "action": "Toggle workspace layout"
+    "chord": "SUPER + CTRL + X",
+    "action": "Toggle dictation"
   },
   {
     "id": "kb.139",
     "index": 139,
-    "chord": "SUPER + P",
-    "action": "Pseudo window"
+    "chord": "SUPER + CTRL + Z",
+    "action": "Zoom in"
   },
   {
     "id": "kb.140",
     "index": 140,
-    "chord": "SUPER + SHIFT + A",
-    "action": "Default agent"
+    "chord": "SUPER + HOME",
+    "action": "Restore window width"
   },
   {
     "id": "kb.141",
     "index": 141,
-    "chord": "SUPER + SHIFT + ALT + A",
-    "action": "Grok"
+    "chord": "SUPER + L",
+    "action": "Toggle workspace layout"
   },
   {
     "id": "kb.142",
     "index": 142,
-    "chord": "SUPER + SHIFT + ALT + DOWN",
-    "action": "Move workspace to down monitor"
+    "chord": "SUPER + P",
+    "action": "Pseudo window"
   },
   {
     "id": "kb.143",
     "index": 143,
-    "chord": "SUPER + SHIFT + ALT + E",
-    "action": "New email"
+    "chord": "SUPER + SHIFT + A",
+    "action": "ChatGPT"
   },
   {
     "id": "kb.144",
     "index": 144,
-    "chord": "SUPER + SHIFT + ALT + G",
-    "action": "WhatsApp"
+    "chord": "SUPER + SHIFT + ALT + A",
+    "action": "Grok"
   },
   {
     "id": "kb.145",
     "index": 145,
-    "chord": "SUPER + SHIFT + ALT + LEFT",
-    "action": "Move workspace to left monitor"
+    "chord": "SUPER + SHIFT + ALT + DOWN",
+    "action": "Move workspace to down monitor"
   },
   {
     "id": "kb.146",
     "index": 146,
-    "chord": "SUPER + SHIFT + ALT + M",
-    "action": "Music TUI"
+    "chord": "SUPER + SHIFT + ALT + E",
+    "action": "New email"
   },
   {
     "id": "kb.147",
     "index": 147,
-    "chord": "SUPER + SHIFT + ALT + RIGHT",
-    "action": "Move workspace to right monitor"
+    "chord": "SUPER + SHIFT + ALT + G",
+    "action": "WhatsApp"
   },
   {
     "id": "kb.148",
     "index": 148,
-    "chord": "SUPER + SHIFT + ALT + UP",
-    "action": "Move workspace to up monitor"
+    "chord": "SUPER + SHIFT + ALT + LEFT",
+    "action": "Move workspace to left monitor"
   },
   {
     "id": "kb.149",
     "index": 149,
-    "chord": "SUPER + SHIFT + ALT + X",
-    "action": "X Post"
+    "chord": "SUPER + SHIFT + ALT + M",
+    "action": "Music TUI"
   },
   {
     "id": "kb.150",
     "index": 150,
-    "chord": "SUPER + SHIFT + BACKSPACE",
-    "action": "Toggle window gaps"
+    "chord": "SUPER + SHIFT + ALT + RIGHT",
+    "action": "Move workspace to right monitor"
   },
   {
     "id": "kb.151",
     "index": 151,
-    "chord": "SUPER + SHIFT + C",
-    "action": "Calendar"
+    "chord": "SUPER + SHIFT + ALT + UP",
+    "action": "Move workspace to up monitor"
   },
   {
     "id": "kb.152",
     "index": 152,
-    "chord": "SUPER + SHIFT + CTRL + A",
-    "action": "Agent"
+    "chord": "SUPER + SHIFT + ALT + X",
+    "action": "X Post"
   },
   {
     "id": "kb.153",
     "index": 153,
-    "chord": "SUPER + SHIFT + CTRL + G",
-    "action": "Google Messages"
+    "chord": "SUPER + SHIFT + BACKSPACE",
+    "action": "Toggle window gaps"
   },
   {
     "id": "kb.154",
     "index": 154,
-    "chord": "SUPER + SHIFT + CTRL + R",
-    "action": "Clear reminders"
+    "chord": "SUPER + SHIFT + C",
+    "action": "Calendar"
   },
   {
     "id": "kb.155",
     "index": 155,
-    "chord": "SUPER + SHIFT + D",
-    "action": "Docker"
+    "chord": "SUPER + SHIFT + CTRL + A",
+    "action": "Agent"
   },
   {
     "id": "kb.156",
     "index": 156,
-    "chord": "SUPER + SHIFT + E",
-    "action": "Email"
+    "chord": "SUPER + SHIFT + CTRL + G",
+    "action": "Google Messages"
   },
   {
     "id": "kb.157",
     "index": 157,
-    "chord": "SUPER + SHIFT + G",
-    "action": "Signal"
+    "chord": "SUPER + SHIFT + CTRL + R",
+    "action": "Clear reminders"
   },
   {
     "id": "kb.158",
     "index": 158,
-    "chord": "SUPER + SHIFT + M",
-    "action": "Music"
+    "chord": "SUPER + SHIFT + D",
+    "action": "Docker"
   },
   {
     "id": "kb.159",
     "index": 159,
-    "chord": "SUPER + SHIFT + N",
-    "action": "Editor"
+    "chord": "SUPER + SHIFT + E",
+    "action": "Email"
   },
   {
     "id": "kb.160",
     "index": 160,
-    "chord": "SUPER + SHIFT + O",
-    "action": "Obsidian"
+    "chord": "SUPER + SHIFT + G",
+    "action": "Signal"
   },
   {
     "id": "kb.161",
     "index": 161,
-    "chord": "SUPER + SHIFT + P",
-    "action": "Google Photos"
+    "chord": "SUPER + SHIFT + M",
+    "action": "Music"
   },
   {
     "id": "kb.162",
     "index": 162,
-    "chord": "SUPER + SHIFT + S",
-    "action": "Google Maps"
+    "chord": "SUPER + SHIFT + N",
+    "action": "Editor"
   },
   {
     "id": "kb.163",
     "index": 163,
-    "chord": "SUPER + SHIFT + SLASH",
-    "action": "Passwords"
+    "chord": "SUPER + SHIFT + O",
+    "action": "Obsidian"
   },
   {
     "id": "kb.164",
     "index": 164,
-    "chord": "SUPER + SHIFT + SPACE",
-    "action": "Toggle top bar"
+    "chord": "SUPER + SHIFT + P",
+    "action": "Google Photos"
   },
   {
     "id": "kb.165",
     "index": 165,
-    "chord": "SUPER + SHIFT + W",
-    "action": "Omawrite"
+    "chord": "SUPER + SHIFT + S",
+    "action": "Google Maps"
   },
   {
     "id": "kb.166",
     "index": 166,
-    "chord": "SUPER + SHIFT + X",
-    "action": "X"
+    "chord": "SUPER + SHIFT + SLASH",
+    "action": "Passwords"
   },
   {
     "id": "kb.167",
     "index": 167,
-    "chord": "SUPER + SHIFT + Y",
-    "action": "YouTube"
+    "chord": "SUPER + SHIFT + SPACE",
+    "action": "Toggle top bar"
   },
   {
     "id": "kb.168",
     "index": 168,
-    "chord": "SUPER + SLASH",
-    "action": "Monitor scaling up"
+    "chord": "SUPER + SHIFT + W",
+    "action": "Omawrite"
   },
   {
     "id": "kb.169",
     "index": 169,
-    "chord": "SUPER + ALT + 1",
-    "action": "Switch to group window 1"
+    "chord": "SUPER + SHIFT + X",
+    "action": "X"
   },
   {
     "id": "kb.170",
     "index": 170,
-    "chord": "SUPER + ALT + 2",
-    "action": "Switch to group window 2"
+    "chord": "SUPER + SHIFT + Y",
+    "action": "YouTube"
   },
   {
     "id": "kb.171",
     "index": 171,
-    "chord": "SUPER + ALT + 3",
-    "action": "Switch to group window 3"
+    "chord": "SUPER + SLASH",
+    "action": "Monitor scaling up"
   },
   {
     "id": "kb.172",
     "index": 172,
-    "chord": "SUPER + ALT + 4",
-    "action": "Switch to group window 4"
+    "chord": "SUPER + ALT + 1",
+    "action": "Switch to group window 1"
   },
   {
     "id": "kb.173",
     "index": 173,
-    "chord": "SUPER + ALT + 5",
-    "action": "Switch to group window 5"
+    "chord": "SUPER + ALT + 2",
+    "action": "Switch to group window 2"
   },
   {
     "id": "kb.174",
     "index": 174,
-    "chord": "SUPER + ALT + DOWN",
-    "action": "Move window to group on bottom"
+    "chord": "SUPER + ALT + 3",
+    "action": "Switch to group window 3"
   },
   {
     "id": "kb.175",
     "index": 175,
-    "chord": "SUPER + ALT + G",
-    "action": "Move active window out of group"
+    "chord": "SUPER + ALT + 4",
+    "action": "Switch to group window 4"
   },
   {
     "id": "kb.176",
     "index": 176,
-    "chord": "SUPER + ALT + LEFT",
-    "action": "Move window to group on left"
+    "chord": "SUPER + ALT + 5",
+    "action": "Switch to group window 5"
   },
   {
     "id": "kb.177",
     "index": 177,
-    "chord": "SUPER + ALT + RIGHT",
-    "action": "Move window to group on right"
+    "chord": "SUPER + ALT + DOWN",
+    "action": "Move window to group on bottom"
   },
   {
     "id": "kb.178",
     "index": 178,
-    "chord": "SUPER + ALT + TAB",
-    "action": "Next window in group"
+    "chord": "SUPER + ALT + G",
+    "action": "Move active window out of group"
   },
   {
     "id": "kb.179",
     "index": 179,
-    "chord": "SUPER + ALT + UP",
-    "action": "Move window to group on top"
+    "chord": "SUPER + ALT + LEFT",
+    "action": "Move window to group on left"
   },
   {
     "id": "kb.180",
     "index": 180,
-    "chord": "SUPER + CTRL + LEFT",
-    "action": "Move grouped window focus left"
+    "chord": "SUPER + ALT + RIGHT",
+    "action": "Move window to group on right"
   },
   {
     "id": "kb.181",
     "index": 181,
-    "chord": "SUPER + CTRL + RIGHT",
-    "action": "Move grouped window focus right"
+    "chord": "SUPER + ALT + TAB",
+    "action": "Next window in group"
   },
   {
     "id": "kb.182",
     "index": 182,
-    "chord": "SUPER + G",
-    "action": "Toggle window grouping"
+    "chord": "SUPER + ALT + UP",
+    "action": "Move window to group on top"
   },
   {
     "id": "kb.183",
     "index": 183,
-    "chord": "SUPER + SHIFT + ALT + TAB",
-    "action": "Previous window in group"
+    "chord": "SUPER + CTRL + LEFT",
+    "action": "Move grouped window focus left"
   },
   {
     "id": "kb.184",
     "index": 184,
-    "chord": "ALT + TAB",
-    "action": "Reveal active window on top"
+    "chord": "SUPER + CTRL + RIGHT",
+    "action": "Move grouped window focus right"
   },
   {
     "id": "kb.185",
     "index": 185,
-    "chord": "SHIFT + ALT + TAB",
-    "action": "Reveal active window on top"
+    "chord": "SUPER + G",
+    "action": "Toggle window grouping"
   },
   {
     "id": "kb.186",
     "index": 186,
-    "chord": "SUPER + ALT + K",
-    "action": "Tmux keybindings"
+    "chord": "SUPER + SHIFT + ALT + TAB",
+    "action": "Previous window in group"
   },
   {
     "id": "kb.187",
     "index": 187,
+    "chord": "ALT + TAB",
+    "action": "Reveal active window on top"
+  },
+  {
+    "id": "kb.188",
+    "index": 188,
+    "chord": "SHIFT + ALT + TAB",
+    "action": "Reveal active window on top"
+  },
+  {
+    "id": "kb.189",
+    "index": 189,
+    "chord": "SUPER + ALT + K",
+    "action": "Tmux keybindings"
+  },
+  {
+    "id": "kb.190",
+    "index": 190,
     "chord": "SUPER + CTRL + K",
     "action": "Herdr keybindings"
   }

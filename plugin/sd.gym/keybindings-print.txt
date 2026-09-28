@@ -95,6 +95,8 @@ SUPER SHIFT + COMMA                 → Dismiss all notifications
 SUPER + BACKSPACE                   → Toggle window transparency
 SUPER CTRL + N                      → Toggle nightlight
 SUPER CTRL + I                      → Toggle locking on idle
+F9                                  → Start dictation (push-to-talk)
+F9                                  → Stop dictation (push-to-talk)
 SHIFT ALT + D                       → Download Video from Web App
 SHIFT ALT + L                       → Copy URL from Web App
 SUPER ALT + BRACKETLEFT             → Make webcam overlay smaller
@@ -136,11 +138,12 @@ SUPER CTRL + SPACE                  → Background switcher
 SUPER CTRL + S                      → Share
 SUPER CTRL + T                      → Activity
 SUPER CTRL + W                      → Network
+SUPER CTRL + X                      → Toggle dictation
 SUPER CTRL + Z                      → Zoom in
 SUPER + Home                        → Restore window width
 SUPER + L                           → Toggle workspace layout
 SUPER + P                           → Pseudo window
-SUPER SHIFT + A                     → Default agent
+SUPER SHIFT + A                     → ChatGPT
 SUPER SHIFT ALT + A                 → Grok
 SUPER SHIFT ALT + DOWN              → Move workspace to down monitor
 SUPER SHIFT ALT + E                 → New email

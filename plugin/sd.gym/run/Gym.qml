@@ -21,7 +21,8 @@ Item {
   property bool passedStage: false
   property int playedStage: 1
   property bool catalogLoaded: false
-  property bool catalogStalled: false
+  property string catalogText: ""
+  property var lastPress: ({ chord: "", atMs: 0 })
   property bool pendingChartStart: false
   property string catalogSource: "baked fallback"
   property string lastJudgement: ""
@@ -93,13 +94,26 @@ Item {
     return root.foreground
   }
 
+  // The Hyprland submap is global, so Gym holds it only while its window has
+  // keyboard focus and releases it as soon as focus moves elsewhere.
+  property bool sandboxed: false
+
   function enterSandbox() {
+    if (root.sandboxed) return
+    root.sandboxed = true
     // QML array (not a .js return value) so Quickshell.execDetached actually runs.
     Quickshell.execDetached(["hyprctl", "dispatch", GymLogic.sandboxEnterDispatch()])
   }
 
   function leaveSandbox() {
+    if (!root.sandboxed) return
+    root.sandboxed = false
     Quickshell.execDetached(["hyprctl", "dispatch", GymLogic.sandboxLeaveDispatch()])
+  }
+
+  function syncSandbox() {
+    if (root.opened && window.visible && keyCatcher.windowActive) root.enterSandbox()
+    else root.leaveSandbox()
   }
 
   function open(payloadJson) {
@@ -108,7 +122,7 @@ Item {
     root.lastJudgement = ""
     root.chartComplete = false
     window.visible = true
-    root.enterSandbox()
+    root.syncSandbox()
     root.refreshCatalog()
     root.startChart()
     Qt.callLater(function() { keyCatcher.forceActiveFocus() })
@@ -225,9 +239,16 @@ Item {
     root.catalogLoaded = false
     root.pendingChartStart = true
     catalogFallbackTimer.restart()
-    if (!keybindingsProcess.running) root.catalogStalled = false
+    if (keybindingsProcess.running) return
+    root.catalogText = ""
     // Process.exec needs a command argument; rerun the declared command instead.
-    if (!keybindingsProcess.running) keybindingsProcess.running = true
+    keybindingsProcess.running = true
+  }
+
+  function finishCatalog(exitCode) {
+    catalogFallbackTimer.stop()
+    if (root.catalogLoaded) return
+    root.loadCatalog(GymLogic.catalogTextForExit(exitCode, root.catalogText))
   }
 
   function saveProgress() {
@@ -241,37 +262,6 @@ Item {
     root.progress = GymLogic.applyChartResult(root.progress, root.run)
     root.saveProgress()
     console.log("io.github.stevederico.omarchy-gym end stage=" + root.playedStage + " grade=" + root.gradeText + " passed=" + root.passedStage + " retry=1")
-  }
-
-  function symbolKeyName(event) {
-    var symbols = {
-      "!": "1",
-      "@": "2",
-      "#": "3",
-      "$": "4",
-      "%": "5",
-      "^": "6",
-      "&": "7",
-      "*": "8",
-      "(": "9",
-      ")": "0",
-      "_": "MINUS",
-      "+": "EQUAL",
-      "{": "BRACKETLEFT",
-      "}": "BRACKETRIGHT",
-      "|": "BACKSLASH",
-      "\\": "BACKSLASH",
-      ":": "SEMICOLON",
-      ";": "SEMICOLON",
-      "\"": "APOSTROPHE",
-      "'": "APOSTROPHE",
-      "<": "COMMA",
-      ">": "PERIOD",
-      "?": "SLASH",
-      "~": "GRAVE",
-      "`": "GRAVE"
-    }
-    return symbols[String(event.text || "")] || ""
   }
 
   function keyName(event) {
@@ -317,7 +307,12 @@ Item {
     if (event.key === Qt.Key_Control) return "CTRL"
     if (event.key === Qt.Key_Alt) return "ALT"
     if (event.key === Qt.Key_Meta) return "SUPER"
-    var symbol = root.symbolKeyName(event)
+    // Shifted symbols (Qt.Key_Plus, Qt.Key_Underscore, Qt.Key_Less,
+    // Qt.Key_Greater, Qt.Key_Question, Qt.Key_Exclam..Qt.Key_ParenRight, ...)
+    // map back to the unshifted key Hyprland binds use.
+    var shifted = GymLogic.keyNameForQtKey(event.key)
+    if (shifted) return shifted
+    var symbol = GymLogic.symbolKeyName(event.text)
     if (symbol) return symbol
     if (event.text && event.text.length === 1) {
       var ch = event.text.toUpperCase()
@@ -350,7 +345,15 @@ Item {
       return
     }
     if (routed.action !== "score") return
-    root.applyScore(GymLogic.scorePress(root.run, root.nowMs, routed.chord))
+    root.scoreRouted(routed.chord)
+  }
+
+  function scoreRouted(chord) {
+    var now = Date.now()
+    if (GymLogic.isDuplicatePress(root.lastPress, chord, now)) return "duplicate"
+    root.lastPress = { chord: GymLogic.normalizeChord(chord), atMs: now }
+    root.applyScore(GymLogic.scorePress(root.run, root.nowMs, chord))
+    return root.lastJudgement
   }
 
   function scoreChord(arg) {
@@ -371,8 +374,7 @@ Item {
       return "retry"
     }
     if (root.chartComplete || routed.action !== "score") return routed.action || "ignore"
-    root.applyScore(GymLogic.scorePress(root.run, root.nowMs, routed.chord || chord))
-    return root.lastJudgement
+    return root.scoreRouted(routed.chord || chord)
   }
 
   function partsFromChord(chord) {
@@ -429,20 +431,21 @@ Item {
         return
       }
       root.nowMs = Date.now() - root.startEpoch
-      root.run = GymLogic.advanceChart(root.run, root.nowMs)
+      var next = GymLogic.advanceChart(root.run, root.nowMs)
+      if (next === root.run) return
+      root.run = next
       if (root.run.chartComplete) root.finishChart()
     }
   }
 
-  // A missing or stalled print command never finishes its stream, so the
-  // baked snapshot takes over after a short wait.
+  // The scan runs under a 3 s timeout. This backstop fires 1 s later in case
+  // the process never reports an exit, and loads the baked snapshot.
   Timer {
     id: catalogFallbackTimer
     interval: 4000
     repeat: false
     onTriggered: {
       if (root.catalogLoaded) return
-      root.catalogStalled = true
       root.loadCatalog("")
       keybindingsProcess.running = false
     }
@@ -451,11 +454,15 @@ Item {
   FileView {
     id: progressFile
     path: root.progressPath
-    watchChanges: true
     atomicWrites: true
+    // Only the first-run "file missing" load error is expected, so loads stay
+    // quiet and save failures are reported below.
     printErrors: false
     onLoaded: root.loadProgress(text())
     onLoadFailed: root.loadProgress("{}")
+    onSaveFailed: function(error) {
+      console.warn("io.github.stevederico.omarchy-gym could not save progress to " + root.progressPath + ": " + FileViewError.toString(error))
+    }
   }
 
   Process {
@@ -463,14 +470,16 @@ Item {
     // timeout stops the whole process group, so a stalled scan leaves no
     // child behind.
     command: ["timeout", "3", "omarchy", "menu", "keybindings", "--print"]
-    running: true
+    // Started by refreshCatalog() when Gym opens, not at every shell start.
+    running: false
+    // The stream finishes before the exit is reported; finishCatalog uses the
+    // exit code to reject partial output from a timed-out scan (exit 124).
     stdout: StdioCollector {
       waitForEnd: true
-      onStreamFinished: {
-        // Output from a command stopped by the fallback is partial; skip it.
-        if (root.catalogStalled) return
-        root.loadCatalog(this.text)
-      }
+      onStreamFinished: root.catalogText = this.text
+    }
+    onExited: function(exitCode) {
+      root.finishCatalog(exitCode)
     }
   }
 
@@ -485,7 +494,7 @@ Item {
 
     onVisibleChanged: {
       if (visible) {
-        root.enterSandbox()
+        root.syncSandbox()
         Qt.callLater(function() { keyCatcher.forceActiveFocus() })
       } else {
         root.leaveSandbox()
@@ -498,6 +507,8 @@ Item {
       id: keyCatcher
       anchors.fill: parent
       focus: true
+      readonly property bool windowActive: Window.active
+      onWindowActiveChanged: root.syncSandbox()
       Keys.priority: Keys.BeforeItem
       Keys.onPressed: function(event) {
         root.handleChord(event)

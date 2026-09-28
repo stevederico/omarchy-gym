@@ -1,3 +1,18 @@
+1.1.1
+
+  Fix F12 failsafe
+  Follow window focus
+  Forward Lua chords
+  Dedupe double presses
+  Ignore keyless events
+  Map shifted symbols
+  Reject timed-out scans
+  Scan on open
+  Report save failures
+  Skip idle ticks
+  Use stock keybindings
+  Add regen script
+
 1.1.0
 
   Fix chart restart

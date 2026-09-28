@@ -10,11 +10,11 @@ presses are misses. Gym never dispatches the real Hyprland or Omarchy action.
 The chart follows the **Learn → Keybindings** order. It starts with the first
 3 playable keyboard chords, then expands to 5, 10, 20, 40, and so on. A stage
 grade of C or better unlocks the next pool. The chart is silent in v1.
-At startup, Gym reads the current `omarchy menu keybindings --print` output.
-`catalog.json` and `keybindings-print.txt` preserve the bundled raw snapshot;
-`GymLogic.js` applies the documented filters before chart generation and uses
-the snapshot only if the command is unavailable, does not finish within 3
-seconds, or produces no playable rows.
+Each time Gym opens, it reads the current `omarchy menu keybindings --print`
+output. `catalog.json` and `keybindings-print.txt` preserve a bundled snapshot
+of stock Omarchy bindings; `GymLogic.js` applies the documented filters before
+chart generation and uses the snapshot only if the command is unavailable,
+does not finish within 3 seconds, or produces no playable rows.
 
 Mouse binds, hardware (`XF86*`) keys, and Gym's `Super+W` close control are
 excluded from scoring. See `plugin/sd.gym/DROPS.md`.
@@ -30,7 +30,8 @@ excluded from scoring. See `plugin/sd.gym/DROPS.md`.
   dependency. It only uses tools that ship with Omarchy.
 - Gym writes progress only to
   `~/.local/state/omarchy/gym-progress.json`.
-- Gym invokes `hyprctl` only to enter and leave its temporary submap.
+- Gym invokes `hyprctl` only to enter and leave its temporary submap. It
+  holds the submap only while the Gym window has keyboard focus.
 - The optional menu extension must be merged manually; Gym does not overwrite
   user configuration.
 
@@ -82,8 +83,14 @@ into your Hyprland bindings source:
   `bindings.conf`.
 
 Do not replace `bindings.lua` or `bindings.conf`. Leave all other chords
-unbound in the submap so Qt can receive them. `Super+W` closes Gym; bare
-Escape closes normally; F12 is the emergency close path.
+unbound in the submap so they are not dispatched. The Lua block also adds a
+key listener that forwards each press made in the submap to Gym over shell
+IPC, because Super chords may not reach a normal window; Gym scores a press
+once even when both paths report it. The hyprlang block cannot do this, so
+there Gym scores only the chords its window receives.
+
+`Super+W` and bare Escape close Gym. F12 leaves the submap even if
+omarchy-shell is not running.
 
 ## Remove
 
@@ -118,6 +125,13 @@ and `qs.Ui` singletons; the first-party Omarchy plugins report the same.
 
 The tests exercise the same `plugin/sd.gym/run/GymLogic.js` module used by the
 overlay and parse the bundled `plugin/sd.gym/keybindings-print.txt` fixture.
+
+To rebuild that fixture, `catalog.json`, the baked list in `GymLogic.js`, and
+`DROPS.md` from stock Omarchy bindings (never your own):
+
+```sh
+tools/regen-stock-keybindings.sh
+```
 
 ## License
 

@@ -377,3 +377,123 @@ test("root and nested manifests describe the same plugin", () => {
   assert.equal(root.entryPoints.overlay, "plugin/sd.gym/" + nested.entryPoints.overlay)
   assert.ok(fs.existsSync(path.join(__dirname, "..", root.entryPoints.overlay)))
 })
+
+const qmlSource = fs.readFileSync(path.join(__dirname, "..", "plugin", "sd.gym", "run", "Gym.qml"), "utf8")
+const luaSnippet = fs.readFileSync(path.join(__dirname, "..", "extra", "omarchy-gym-submap.lua"), "utf8")
+const confSnippet = fs.readFileSync(path.join(__dirname, "..", "extra", "omarchy-gym-submap.conf"), "utf8")
+
+test("F12 in both submap snippets resets the submap without omarchy-shell", () => {
+  assert.match(luaSnippet, /hl\.bind\("F12", hl\.dsp\.submap\("reset"\)\)/)
+  assert.match(confSnippet, /^bind = , F12, submap, reset$/m)
+  assert.match(luaSnippet, /hl\.bind\("SUPER \+ W", hl\.dsp\.exec_cmd\("omarchy-shell shell hide io\.github\.stevederico\.omarchy-gym"\)\)/)
+  assert.match(confSnippet, /^bind = SUPER, W, exec, omarchy-shell shell hide io\.github\.stevederico\.omarchy-gym$/m)
+})
+
+test("Lua snippet forwards chords to this plugin id, not a private one", () => {
+  assert.match(luaSnippet, /omarchy-shell -q shell call io\.github\.stevederico\.omarchy-gym scoreChord/)
+  assert.doesNotMatch(luaSnippet, /sd\.gym/)
+  assert.match(luaSnippet, /keycode - 8/, "keycodes are XKB, so only the evdev offset lookup is used")
+  assert.doesNotMatch(luaSnippet, /or gym_key_names\[keycode\]/, "a raw-code fallback turns bare modifiers into fake chords")
+  // No description: described binds would show up in Learn and in Gym's own chart.
+  assert.doesNotMatch(luaSnippet, /description/)
+})
+
+test("Gym.qml follows window focus for the submap", () => {
+  assert.match(qmlSource, /readonly property bool windowActive: Window\.active/)
+  assert.match(qmlSource, /onWindowActiveChanged: root\.syncSandbox\(\)/)
+  assert.match(qmlSource, /root\.opened && window\.visible && keyCatcher\.windowActive/)
+})
+
+test("routeKeyEvent ignores an event with no key", () => {
+  const session = { opened: true, chartComplete: false, hasChart: true }
+  assert.equal(gym.routeKeyEvent(session, { key: "", superHeld: true }).action, "ignore")
+  assert.equal(gym.routeKeyEvent(session, { superHeld: true, shiftHeld: true }).action, "ignore")
+})
+
+test("Super+W dismisses from either key path instead of scoring", () => {
+  const session = { opened: true, chartComplete: false, hasChart: true }
+  assert.equal(gym.routeKeyEvent(session, { key: "W", superHeld: true }).action, "dismiss")
+  assert.equal(gym.routeKeyEvent(session, { key: "W", superHeld: true, shiftHeld: true }).action, "score")
+})
+
+test("shifted Qt key codes map to the unshifted key name", () => {
+  // Qt.Key_* values for printable ASCII are the character code points.
+  const qtKeys = {
+    Exclam: [0x21, "1"], At: [0x40, "2"], NumberSign: [0x23, "3"], Dollar: [0x24, "4"],
+    Percent: [0x25, "5"], AsciiCircum: [0x5e, "6"], Ampersand: [0x26, "7"], Asterisk: [0x2a, "8"],
+    ParenLeft: [0x28, "9"], ParenRight: [0x29, "0"], Plus: [0x2b, "EQUAL"], Underscore: [0x5f, "MINUS"],
+    Less: [0x3c, "COMMA"], Greater: [0x3e, "PERIOD"], Question: [0x3f, "SLASH"], Colon: [0x3a, "SEMICOLON"],
+    QuoteDbl: [0x22, "APOSTROPHE"], BraceLeft: [0x7b, "BRACKETLEFT"], BraceRight: [0x7d, "BRACKETRIGHT"],
+    Bar: [0x7c, "BACKSLASH"], AsciiTilde: [0x7e, "GRAVE"], Semicolon: [0x3b, "SEMICOLON"],
+    Apostrophe: [0x27, "APOSTROPHE"], Backslash: [0x5c, "BACKSLASH"], QuoteLeft: [0x60, "GRAVE"],
+    Comma: [0x2c, "COMMA"], Period: [0x2e, "PERIOD"], Slash: [0x2f, "SLASH"], Minus: [0x2d, "MINUS"], Equal: [0x3d, "EQUAL"]
+  }
+  for (const [name, [code, expected]] of Object.entries(qtKeys)) {
+    assert.equal(gym.keyNameForQtKey(code), expected, "Qt.Key_" + name)
+    assert.equal(gym.dropReason("SUPER + " + expected), "", expected + " must be scorable")
+  }
+  assert.equal(gym.keyNameForQtKey(0x41), "A")
+  assert.equal(gym.keyNameForQtKey(0x35), "5")
+  assert.equal(gym.keyNameForQtKey(0x01000000), "", "Qt.Key_Escape is not printable")
+  assert.equal(gym.symbolKeyName("?"), "SLASH")
+  assert.match(qmlSource, /GymLogic\.keyNameForQtKey\(event\.key\)/)
+  assert.doesNotMatch(qmlSource, /function symbolKeyName/, "one symbol table, in GymLogic")
+})
+
+test("a press reported by both key paths is scored once", () => {
+  const last = { chord: "SUPER + SPACE", atMs: 1000 }
+  assert.equal(gym.isDuplicatePress(last, "super+space", 1000 + gym.DUPLICATE_PRESS_MS - 1), true)
+  assert.equal(gym.isDuplicatePress(last, "SUPER + SPACE", 1000 + gym.DUPLICATE_PRESS_MS), false)
+  assert.equal(gym.isDuplicatePress(last, "SUPER + K", 1010), false)
+  assert.equal(gym.isDuplicatePress({ chord: "", atMs: 0 }, "SUPER + K", 10), false)
+  assert.match(qmlSource, /function scoreRouted\(chord\)/)
+  assert.equal((qmlSource.match(/GymLogic\.scorePress\(/g) || []).length, 1, "both paths go through scoreRouted")
+})
+
+test("a timed-out keybindings scan is treated as stalled", () => {
+  assert.equal(gym.catalogTextForExit(0, "SUPER + K → Keybindings"), "SUPER + K → Keybindings")
+  assert.equal(gym.catalogTextForExit(124, "SUPER + K → Keyb"), "")
+  assert.equal(gym.catalogTextForExit(127, "partial"), "")
+  assert.match(qmlSource, /onExited: function\(exitCode\) \{\s*root\.finishCatalog\(exitCode\)/)
+  assert.match(qmlSource, /command: \["timeout", "3", /)
+  assert.match(qmlSource, /interval: 4000/)
+  assert.match(qmlSource, /3 s timeout\. This backstop fires 1 s later/)
+})
+
+test("the keybindings scan starts on open, not at shell start", () => {
+  const block = qmlSource.slice(qmlSource.indexOf("id: keybindingsProcess"))
+  assert.match(block.slice(0, 600), /running: false/)
+  assert.match(qmlSource, /function open\(payloadJson\) \{[\s\S]*?root\.refreshCatalog\(\)/)
+})
+
+test("progress file does not watch itself and reports save failures", () => {
+  const block = qmlSource.slice(qmlSource.indexOf("id: progressFile"), qmlSource.indexOf("id: keybindingsProcess"))
+  assert.doesNotMatch(block, /watchChanges/)
+  assert.match(block, /onSaveFailed: function\(error\)/)
+})
+
+test("advanceChart returns the same run when no note timed out", () => {
+  const chart = gym.generateChart(gym.defaultPlayable(), 1)
+  const run = gym.emptyRun(chart)
+  const first = chart.notes[0]
+  assert.equal(gym.advanceChart(run, first.hitTimeMs), run)
+  assert.equal(gym.advanceChart(run, first.hitTimeMs + gym.WINDOW.good), run)
+  const later = gym.advanceChart(run, first.hitTimeMs + gym.WINDOW.good + 1)
+  assert.notEqual(later, run)
+  assert.equal(later.judgements[0], "Miss")
+  assert.equal(run.judgements[0], null, "input run is not mutated")
+  assert.equal(gym.advanceChart(later, first.hitTimeMs + gym.WINDOW.good + 2), later)
+  assert.match(qmlSource, /if \(next === root\.run\) return/)
+})
+
+test("bundled keybindings are stock Omarchy, with no personal binds", () => {
+  for (const text of [fixture, fs.readFileSync(path.join(__dirname, "..", "plugin", "sd.gym", "catalog.json"), "utf8")]) {
+    assert.doesNotMatch(text, /Default agent/)
+  }
+  assert.ok(!gym.BAKED_PLAYABLE.some((row) => row.action === "Default agent"))
+  assert.ok(gym.BAKED_PLAYABLE.some((row) => row.chord === "SUPER + SHIFT + A" && row.action === "ChatGPT"))
+  const parsed = gym.parseKeybindingsPrint(fixture)
+  assert.deepEqual(gym.BAKED_PLAYABLE.map((row) => row.chord), parsed.playable.map((row) => row.chord))
+  const catalog = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "plugin", "sd.gym", "catalog.json"), "utf8"))
+  assert.equal(catalog.length, parsed.playable.length + 1, "catalog keeps the reserved Super+W row")
+})

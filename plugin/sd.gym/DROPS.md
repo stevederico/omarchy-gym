@@ -5,6 +5,9 @@ They stay in the print fixture but are excluded from the playable pool.
 `catalog.json` preserves the raw Learn catalog; `GymLogic.js` applies these
 filters when it builds the playable pool.
 
+The bundled fixture comes from stock Omarchy bindings only; see
+`tools/regen-stock-keybindings.sh`.
+
 | Chord | Action | Reason |
 |---|---|---|
 | SUPER + W | Close window | reserved for Gym control |
