@@ -26,6 +26,9 @@ Item {
   property int resultStars: 0
   property bool catalogLoaded: false
   property string catalogText: ""
+  property string progressText: ""
+  property string progressPendingText: ""
+  property bool progressSaveQueued: false
   property var lastPress: ({ chord: "", atMs: 0 })
   property bool pendingChartStart: false
   property string catalogSource: "baked fallback"
@@ -230,7 +233,17 @@ Item {
   }
 
   function saveProgress() {
-    progressFile.setText(GymLogic.serializeProgress(root.progress))
+    if (progressWriter.running) {
+      root.progressSaveQueued = true
+      return
+    }
+    var text = GymLogic.serializeProgress(root.progress)
+    if (GymLogic.utf8Length(text) > GymLogic.PROGRESS_MAX_BYTES) {
+      console.warn("io.github.stevederico.omarchy-gym progress too large to save")
+      return
+    }
+    root.progressPendingText = text
+    progressWriter.running = true
   }
 
   function finishChart() {
@@ -343,6 +356,7 @@ Item {
     if (!root.opened) return "idle"
     var chord = String(arg || "")
     if (!chord) return "empty"
+    if (chord.length > GymLogic.CHORD_ARG_MAX) return "ignore"
     var routed = GymLogic.routeKeyEvent({
       opened: root.opened,
       chartComplete: root.chartComplete,
@@ -454,25 +468,45 @@ Item {
     }
   }
 
-  FileView {
-    id: progressFile
-    path: root.progressPath
-    atomicWrites: true
-    // Only the first-run "file missing" load error is expected, so loads stay
-    // quiet and save failures are reported below.
-    printErrors: false
-    onLoaded: root.loadProgress(text())
-    onLoadFailed: root.loadProgress("{}")
-    onSaveFailed: function(error) {
-      console.warn("io.github.stevederico.omarchy-gym could not save progress to " + root.progressPath + ": " + FileViewError.toString(error))
+  // Progress is read and written through small shell commands instead of a
+  // FileView: the read refuses symlinks and stops at PROGRESS_MAX_BYTES, and
+  // the write goes to a temp file that is renamed over the path, so a
+  // symlink there is replaced, never followed.
+  Process {
+    id: progressReader
+    command: ["sh", "-c", "[ -f \"$1\" ] && [ ! -L \"$1\" ] || exit 3; exec head -c 16385 -- \"$1\"", "gym-progress", root.progressPath]
+    running: false
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: root.progressText = this.text
+    }
+    onExited: function(exitCode) {
+      root.loadProgress(exitCode === 0 ? root.progressText : "{}")
     }
   }
 
   Process {
+    id: progressWriter
+    command: ["sh", "-c", "p=\"$1\"; d=${p%/*}; [ -d \"$p\" ] && exit 1; mkdir -p -- \"$d\" && t=$(mktemp -- \"$d/.gym-progress.XXXXXX\") || exit 1; printf '%s' \"$2\" > \"$t\" && mv -fT -- \"$t\" \"$p\" || { rm -f -- \"$t\"; exit 1; }", "gym-progress", root.progressPath, root.progressPendingText]
+    running: false
+    onExited: function(exitCode) {
+      if (exitCode !== 0) console.warn("io.github.stevederico.omarchy-gym could not save progress to " + root.progressPath)
+      if (root.progressSaveQueued) {
+        root.progressSaveQueued = false
+        root.saveProgress()
+      }
+    }
+  }
+
+  Component.onCompleted: progressReader.running = true
+  onProgressPathChanged: progressReader.running = true
+
+  Process {
     id: keybindingsProcess
     // timeout stops the whole process group, so a stalled scan leaves no
-    // child behind.
-    command: ["timeout", "3", "omarchy", "menu", "keybindings", "--print"]
+    // child behind. head caps the output at GymLogic.CATALOG_MAX_BYTES so a
+    // huge keybinding list can never grow the shell's memory.
+    command: ["timeout", "3", "sh", "-c", "omarchy menu keybindings --print | head -c 65536"]
     // Started by refreshCatalog() when Gym opens, not at every shell start.
     running: false
     // The stream finishes before the exit is reported; finishCatalog uses the
@@ -574,6 +608,7 @@ Item {
       visible: !root.chartComplete
 
       Text {
+        textFormat: Text.PlainText
         text: "SCORE"
         color: root.dimTextColor
         font.family: root.fontFamily
@@ -582,6 +617,7 @@ Item {
       }
 
       Text {
+        textFormat: Text.PlainText
         text: GymLogic.formatScore(root.score)
         color: root.textColor
         font.family: root.fontFamily
@@ -594,6 +630,7 @@ Item {
         Repeater {
           model: 5
           Text {
+            textFormat: Text.PlainText
             required property int index
             text: "★"
             color: index < root.liveStars ? root.starColor : Qt.rgba(1, 1, 1, 0.16)
@@ -613,6 +650,7 @@ Item {
       visible: !root.chartComplete
 
       Text {
+        textFormat: Text.PlainText
         anchors.right: parent.right
         text: "STAGE " + root.stageNumber
         color: root.dimTextColor
@@ -622,6 +660,7 @@ Item {
       }
 
       Text {
+        textFormat: Text.PlainText
         anchors.right: parent.right
         text: root.song ? root.song.title : ""
         color: root.textColor
@@ -631,6 +670,7 @@ Item {
       }
 
       Text {
+        textFormat: Text.PlainText
         anchors.right: parent.right
         text: root.song ? root.song.artist : ""
         color: root.dimTextColor
@@ -648,6 +688,7 @@ Item {
       visible: !root.chartComplete
 
       Text {
+        textFormat: Text.PlainText
         width: parent.width
         text: "x" + root.multiplier
         color: root.textColor
@@ -660,6 +701,7 @@ Item {
       }
 
       Text {
+        textFormat: Text.PlainText
         width: parent.width
         text: root.combo >= 2 ? root.combo + " COMBO" : " "
         color: root.dimTextColor
@@ -670,6 +712,7 @@ Item {
       }
 
       Text {
+        textFormat: Text.PlainText
         width: parent.width
         topPadding: Style.spacing.sm
         text: root.currentAction
@@ -685,6 +728,7 @@ Item {
       }
 
       Text {
+        textFormat: Text.PlainText
         width: parent.width
         text: root.currentChord
         color: root.currentColor
@@ -699,6 +743,7 @@ Item {
     }
 
     Text {
+      textFormat: Text.PlainText
       anchors.left: parent.left
       anchors.right: parent.right
       anchors.bottom: parent.bottom
@@ -732,6 +777,7 @@ Item {
         spacing: 14
 
         Text {
+          textFormat: Text.PlainText
           width: endContent.width
           text: "STAGE " + root.playedStage + (root.song ? "  ·  " + root.song.title.toUpperCase() : "")
           color: root.dimTextColor
@@ -747,6 +793,7 @@ Item {
           Repeater {
             model: 5
             Text {
+              textFormat: Text.PlainText
               required property int index
               text: "★"
               color: index < root.resultStars ? root.starColor : Qt.rgba(1, 1, 1, 0.16)
@@ -756,6 +803,7 @@ Item {
         }
 
         Text {
+          textFormat: Text.PlainText
           width: endContent.width
           text: GymLogic.formatScore(root.score)
           color: root.textColor
@@ -766,6 +814,7 @@ Item {
         }
 
         Text {
+          textFormat: Text.PlainText
           width: endContent.width
           text: "PERFECT " + (root.counts.Perfect || 0)
             + "   GREAT " + (root.counts.Great || 0)
@@ -781,6 +830,7 @@ Item {
         }
 
         Text {
+          textFormat: Text.PlainText
           width: endContent.width
           text: {
             if (root.passedStage)
@@ -806,6 +856,7 @@ Item {
           border.color: root.laneColors[0]
 
           Text {
+            textFormat: Text.PlainText
             anchors.centerIn: parent
             text: "Next stage"
             color: nextMouse.containsMouse ? root.stageColor : root.textColor
@@ -832,6 +883,7 @@ Item {
           border.color: root.laneColors[1]
 
           Text {
+            textFormat: Text.PlainText
             anchors.centerIn: parent
             text: "Retry"
             color: retryMouse.containsMouse ? root.stageColor : root.textColor
@@ -850,6 +902,7 @@ Item {
         }
 
         Text {
+          textFormat: Text.PlainText
           width: endContent.width
           text: "Return retries   ·   Esc leaves"
           color: root.dimTextColor

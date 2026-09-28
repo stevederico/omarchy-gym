@@ -480,10 +480,78 @@ test("the keybindings scan starts on open, not at shell start", () => {
   assert.match(qmlSource, /function open\(payloadJson\) \{[\s\S]*?root\.refreshCatalog\(\)/)
 })
 
-test("progress file does not watch itself and reports save failures", () => {
-  const block = qmlSource.slice(qmlSource.indexOf("id: progressFile"), qmlSource.indexOf("id: keybindingsProcess"))
-  assert.doesNotMatch(block, /watchChanges/)
-  assert.match(block, /onSaveFailed: function\(error\)/)
+test("progress IO is bounded, refuses symlinks, and replaces instead of following", () => {
+  assert.doesNotMatch(qmlSource, /FileView \{/, "no unbounded, symlink-following FileView")
+  const { execFileSync } = require("child_process")
+  const os = require("os")
+  const cmd = (id) => {
+    const block = qmlSource.slice(qmlSource.indexOf("id: " + id))
+    const m = block.match(/command: \[("sh", "-c", ".*?")(, "gym-progress")/)
+    assert.ok(m, id + " command found")
+    return JSON.parse("[" + m[1] + "]")[2]
+  }
+  const readScript = cmd("progressReader")
+  const writeScript = cmd("progressWriter")
+  assert.match(readScript, new RegExp("head -c " + (gym.PROGRESS_MAX_BYTES + 1)))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gym-io-"))
+  const target = path.join(dir, "target.txt")
+  const link = path.join(dir, "gym-progress.json")
+  fs.writeFileSync(target, "secret")
+  fs.symlinkSync(target, link)
+  const run = (script, ...args) => {
+    try { return { code: 0, out: execFileSync("sh", ["-c", script, "gym-progress", ...args]).toString() } }
+    catch (err) { return { code: err.status, out: String(err.stdout || "") } }
+  }
+  assert.equal(run(readScript, link).code, 3, "read refuses a symlink")
+  assert.equal(run(writeScript, link, '{"stage":2}').code, 0)
+  assert.equal(fs.readFileSync(target, "utf8"), "secret", "write did not follow the symlink")
+  assert.equal(fs.lstatSync(link).isSymbolicLink(), false)
+  assert.equal(run(readScript, link).out, '{"stage":2}')
+  fs.writeFileSync(link, "a".repeat(100000))
+  const big = run(readScript, link).out
+  assert.equal(big.length, gym.PROGRESS_MAX_BYTES + 1, "read stops at the cap")
+  assert.equal(gym.parseProgress(big).stage, 1, "oversized progress is ignored")
+  fs.mkdirSync(path.join(dir, "adir"))
+  assert.equal(run(writeScript, path.join(dir, "adir"), "{}").code, 1, "never writes into a directory")
+  assert.deepEqual(fs.readdirSync(dir).filter((n) => n.startsWith(".gym-progress.")), [], "no temp files left")
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test("progress values are sanitized on load", () => {
+  const parsed = gym.parseProgress(JSON.stringify({
+    stage: 3,
+    highScores: { "1": 900, "2": "x", "-1": 5, "__proto__": 1, "99999": 4 },
+    bestStars: { "1": 4.7, "2": -1 }
+  }))
+  assert.equal(parsed.stage, 3)
+  assert.deepEqual(parsed.highScores, { "1": 900 })
+  assert.deepEqual(parsed.bestStars, { "1": 4 })
+  assert.equal(gym.parseProgress(JSON.stringify({ stage: 1e9 })).stage, 1)
+})
+
+test("keybinding scan output is capped and cut-off output is rejected", () => {
+  assert.match(qmlSource, new RegExp('command: \\["timeout", "3", "sh", "-c", "omarchy menu keybindings --print \\| head -c ' + gym.CATALOG_MAX_BYTES + '"\\]'))
+  assert.doesNotMatch(qmlSource, /"omarchy", "menu", "keybindings", "--print"\]/, "no uncapped scan")
+  const line = "SUPER + K                           → Keybindings\n"
+  const full = line.repeat(Math.ceil(gym.CATALOG_MAX_BYTES / gym.utf8Length(line)))
+  const capped = Buffer.from(full).subarray(0, gym.CATALOG_MAX_BYTES).toString()
+  assert.equal(gym.catalogTextForExit(0, capped), "", "output at the cap was cut off")
+  assert.equal(gym.catalogTextForExit(0, line.repeat(10)), line.repeat(10))
+  assert.equal(gym.utf8Length("→"), 3)
+  assert.equal(gym.utf8Length("a😀"), 5)
+})
+
+test("every Text shows plain text, never rich text", () => {
+  const texts = qmlSource.match(/^\s*Text \{\s*$/gm) || []
+  const plain = qmlSource.match(/^\s*textFormat: Text\.PlainText\s*$/gm) || []
+  assert.ok(texts.length > 0)
+  assert.equal(plain.length, texts.length)
+  assert.doesNotMatch(qmlSource, /RichText|StyledText|AutoText/)
+})
+
+test("IPC chords are length-capped", () => {
+  assert.match(qmlSource, /if \(chord\.length > GymLogic\.CHORD_ARG_MAX\) return "ignore"/)
+  assert.equal(gym.CHORD_ARG_MAX, 64)
 })
 
 test("advanceChart returns the same run when no note timed out", () => {

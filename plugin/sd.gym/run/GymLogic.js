@@ -1743,21 +1743,36 @@ function cloneProgress(progress) {
   return JSON.parse(JSON.stringify(progress && typeof progress === "object" ? progress : emptyProgress()))
 }
 
+// Only small whole-number maps keyed by stage survive a load.
+function sanitizeStageMap(value) {
+  var out = {}
+  if (!value || typeof value !== "object" || Array.isArray(value)) return out
+  var keys = Object.keys(value)
+  var k
+  for (k = 0; k < keys.length && k < 1000; k++) {
+    var key = keys[k]
+    var n = Number(value[key])
+    if (/^[1-9][0-9]{0,3}$/.test(key) && isFinite(n) && n >= 0) out[key] = Math.floor(n)
+  }
+  return out
+}
+
 function parseProgress(raw) {
+  if (utf8Length(raw) > PROGRESS_MAX_BYTES) return emptyProgress()
   try {
     var parsed = JSON.parse(String(raw || ""))
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return emptyProgress()
     var next = emptyProgress()
-    if (parsed.exercises && typeof parsed.exercises === "object") next.exercises = parsed.exercises
+    if (parsed.exercises && typeof parsed.exercises === "object" && !Array.isArray(parsed.exercises)) next.exercises = parsed.exercises
     if (Array.isArray(parsed.workoutsCompleted)) next.workoutsCompleted = parsed.workoutsCompleted
     var stage = Number(parsed.stage)
-    if (stage >= 1) next.stage = Math.floor(stage)
+    if (stage >= 1 && stage < 10000) next.stage = Math.floor(stage)
     var cleared = Number(parsed.highestStageCleared)
-    if (cleared >= 0) next.highestStageCleared = Math.floor(cleared)
+    if (cleared >= 0 && cleared < 10000) next.highestStageCleared = Math.floor(cleared)
     var high = Number(parsed.highScore)
-    if (high >= 0) next.highScore = high
-    if (parsed.highScores && typeof parsed.highScores === "object") next.highScores = parsed.highScores
-    if (parsed.bestStars && typeof parsed.bestStars === "object") next.bestStars = parsed.bestStars
+    if (high >= 0 && isFinite(high)) next.highScore = Math.floor(high)
+    next.highScores = sanitizeStageMap(parsed.highScores)
+    next.bestStars = sanitizeStageMap(parsed.bestStars)
     return next
   } catch (err) {
     return emptyProgress()
@@ -2021,9 +2036,34 @@ function isDuplicatePress(last, chord, nowMs) {
   return last.chord === normalizeChord(chord) && Math.abs(nowMs - last.atMs) < DUPLICATE_PRESS_MS
 }
 
+// Hard caps on what Gym reads from outside itself. Gym.qml's commands pipe
+// through `head -c` with these limits, so the shell never buffers more.
+var CATALOG_MAX_BYTES = 65536
+var PROGRESS_MAX_BYTES = 16384
+var CHORD_ARG_MAX = 64
+
+function utf8Length(text) {
+  var s = String(text || "")
+  var bytes = 0
+  var i
+  for (i = 0; i < s.length; i++) {
+    var c = s.charCodeAt(i)
+    if (c < 0x80) bytes += 1
+    else if (c < 0x800) bytes += 2
+    else if (c >= 0xd800 && c <= 0xdbff) { bytes += 4; i++ }
+    else bytes += 3
+  }
+  return bytes
+}
+
 // Exit 124 is timeout(1) stopping a stalled command; its output is partial.
+// Output that reached the byte cap was cut off, so it is rejected as well
+// (a cut multibyte character can decode a few bytes short of the cap).
 function catalogTextForExit(exitCode, text) {
-  return Number(exitCode) === 0 ? String(text || "") : ""
+  if (Number(exitCode) !== 0) return ""
+  var s = String(text || "")
+  if (utf8Length(s) >= CATALOG_MAX_BYTES - 4) return ""
+  return s
 }
 
 // Keep the song clock on the audio position once it drifts past this.
@@ -2066,6 +2106,10 @@ if (typeof module !== "undefined") {
     isDuplicatePress: isDuplicatePress,
     DUPLICATE_PRESS_MS: DUPLICATE_PRESS_MS,
     catalogTextForExit: catalogTextForExit,
+    utf8Length: utf8Length,
+    CATALOG_MAX_BYTES: CATALOG_MAX_BYTES,
+    PROGRESS_MAX_BYTES: PROGRESS_MAX_BYTES,
+    CHORD_ARG_MAX: CHORD_ARG_MAX,
     resyncOrigin: resyncOrigin,
     chordFromParts: chordFromParts,
     isBareEscape: isBareEscape,

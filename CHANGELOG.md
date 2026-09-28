@@ -1,3 +1,13 @@
+1.5.0
+
+  Cap keybinding scan output
+  Bound progress file reads
+  Refuse progress symlinks
+  Write progress atomically
+  Sanitize loaded progress
+  Show text as plain
+  Cap IPC chord length
+
 1.4.0
 
   Follow default audio output
