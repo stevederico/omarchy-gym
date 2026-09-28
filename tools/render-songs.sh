@@ -2,8 +2,8 @@
 # Render Rockstar Hero's songs into plugin/sd.gym/songs/*.ogg and refresh the
 # SONGS block in GymLogic.js.
 #
-# Needs a riff-hero checkout with node_modules installed (RIFF_HERO_DIR,
-# default ../riff-hero), ffmpeg with libopus, and a Chromium based browser to
+# Needs a rockstar-hero checkout with node_modules installed (ROCKSTAR_HERO_DIR,
+# default ../rockstar-hero), ffmpeg with libopus, and a Chromium based browser to
 # open the printed URL. The page renders each song offline with Rockstar
 # Hero's own WebAudio synth and posts the audio back to this script's server.
 #
@@ -12,7 +12,7 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-RIFF_HERO_DIR=${RIFF_HERO_DIR:-$(cd "$ROOT/.." && pwd)/riff-hero}
+ROCKSTAR_HERO_DIR=${ROCKSTAR_HERO_DIR:-$(cd "$ROOT/.." && pwd)/rockstar-hero}
 OUT_DIR=$(mktemp -d)
 SERVER_PID=""
 cleanup() {
@@ -21,13 +21,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
-[[ -x $RIFF_HERO_DIR/node_modules/vite/bin/vite.js ]] || {
-  echo "riff-hero with node_modules not found at $RIFF_HERO_DIR (set RIFF_HERO_DIR)" >&2
+[[ -x $ROCKSTAR_HERO_DIR/node_modules/vite/bin/vite.js ]] || {
+  echo "rockstar-hero with node_modules not found at $ROCKSTAR_HERO_DIR (set ROCKSTAR_HERO_DIR)" >&2
   exit 1
 }
 
-RIFF_HERO_DIR="$RIFF_HERO_DIR" OUT_DIR="$OUT_DIR" \
-  node "$RIFF_HERO_DIR/node_modules/vite/bin/vite.js" --config "$ROOT/tools/render-songs/vite.config.mjs" &
+ROCKSTAR_HERO_DIR="$ROCKSTAR_HERO_DIR" OUT_DIR="$OUT_DIR" \
+  node "$ROCKSTAR_HERO_DIR/node_modules/vite/bin/vite.js" --config "$ROOT/tools/render-songs/vite.config.mjs" &
 SERVER_PID=$!
 
 echo "Open http://127.0.0.1:5241/ in a Chromium based browser and wait for \"done\"."

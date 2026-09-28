@@ -1,3 +1,8 @@
+1.3.0
+
+  Rename riff-hero references
+  Use ROCKSTAR_HERO_DIR
+
 1.2.1
 
   Remove Vite cache

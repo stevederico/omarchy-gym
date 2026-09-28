@@ -1,13 +1,13 @@
 // Renders every Rockstar Hero song to a WAV file with the game's own synth,
 // plus the timing data Gym needs to place notes on what you hear.
 
-import { SONGS } from '@riff/game/songs/index.ts';
-import { buildArrangement } from '@riff/game/arrangement.ts';
-import { buildChart } from '@riff/game/chart.ts';
-import { songDuration } from '@riff/game/timing.ts';
-import { createSongMix, playEvent } from '@riff/audio/mixer.ts';
-import { createNoiseBuffer } from '@riff/audio/drums.ts';
-import type { SongDef } from '@riff/game/types.ts';
+import { SONGS } from '@rockstar/game/songs/index.ts';
+import { buildArrangement } from '@rockstar/game/arrangement.ts';
+import { buildChart } from '@rockstar/game/chart.ts';
+import { songDuration } from '@rockstar/game/timing.ts';
+import { createSongMix, playEvent } from '@rockstar/audio/mixer.ts';
+import { createNoiseBuffer } from '@rockstar/audio/drums.ts';
+import type { SongDef } from '@rockstar/game/types.ts';
 
 const RATE = 44100;
 /** Rockstar Hero's default volume setting. */

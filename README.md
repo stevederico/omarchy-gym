@@ -157,7 +157,7 @@ checkout with its own WebAudio synth. To render them again (needs that
 checkout with `node_modules`, `ffmpeg`, and a Chromium based browser):
 
 ```sh
-RIFF_HERO_DIR=~/Projects/riff-hero tools/render-songs.sh
+ROCKSTAR_HERO_DIR=~/Projects/rockstar-hero tools/render-songs.sh
 ```
 
 `run/Stage.js` is a port of Rockstar Hero's Canvas 2D renderer to Qt's

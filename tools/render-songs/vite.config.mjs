@@ -6,7 +6,7 @@ import fs from "node:fs"
 import path from "node:path"
 
 const here = path.dirname(new URL(import.meta.url).pathname)
-const riffDir = path.resolve(process.env.RIFF_HERO_DIR || path.join(here, "..", "..", "..", "riff-hero"))
+const rockstarDir = path.resolve(process.env.ROCKSTAR_HERO_DIR || path.join(here, "..", "..", "..", "rockstar-hero"))
 const outDir = path.resolve(process.env.OUT_DIR || path.join(here, "out"))
 
 function saveRoute() {
@@ -35,7 +35,7 @@ function saveRoute() {
 export default {
   root: here,
   logLevel: "warn",
-  resolve: { alias: { "@riff": path.join(riffDir, "src") } },
-  server: { host: "127.0.0.1", port: 5241, strictPort: true, fs: { allow: [here, riffDir] } },
+  resolve: { alias: { "@rockstar": path.join(rockstarDir, "src") } },
+  server: { host: "127.0.0.1", port: 5241, strictPort: true, fs: { allow: [here, rockstarDir] } },
   plugins: [saveRoute()]
 }
